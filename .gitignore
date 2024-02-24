@@ -4,4 +4,5 @@ code/
 data/
 
 # Except .gitkeep
-!.gitkeep
+!/code/.gitkeep
+!/data/.gitkeep
