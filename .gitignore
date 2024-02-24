@@ -1,0 +1,7 @@
+# Exclude storages
+.idea
+code
+data
+
+# Except .gitkeep
+!*/.gitkeep

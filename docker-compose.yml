@@ -1,0 +1,74 @@
+version: '3' 
+
+services:
+
+    # php-fpm 8.2
+    app:
+        build:
+            context: ./docker_files
+            dockerfile: php.docker
+        image: sabe/php
+        container_name: sabe-php
+        volumes:
+            - ./code:/code
+            # - ../../config/php:/usr/local/etc
+        networks:
+            - sabe-network
+            
+    # nginx
+    # webserver:
+        # build:
+            # context: ./docker_files
+            # dockerfile: nginx.docker
+        # image: sabe/nginx
+        # container_name: sabe-nginx
+        # env_file: ./env/host.env
+        # volumes:
+            # - ./code:/code
+            # - ../../config/php:/etc/nginx/
+        # networks:
+            # - proxy
+            # - sabe-network
+            
+    # mysql | mariadb
+    db:
+        build:
+            context: ./docker_files
+            dockerfile: db.docker
+        image: sabe/db
+        container_name: sabe-db
+        volumes:
+            - ./data/mysql:/var/lib/mysql
+            - ./code:/code
+        env_file: ./env/db.env
+        ports:
+            - "3308:3306"
+        command: --default-authentication-plugin=mysql_native_password
+        restart: unless-stopped
+        networks:
+            - sabe-network
+    
+    #redis
+    cache:
+        build:
+            context: ./docker_files
+            dockerfile: cache.docker
+        image: sabe/cache
+        container_name: sabe-cache
+        command: redis-server
+        env_file: ./env/cache.env
+        volumes:
+            - ./code:/code
+            - ./data/redis:/var/lib/redis
+            - ./config/redis:/usr/local/etc/redis
+        ports:
+            - "16379:6379"
+        networks:
+            - sabe-network
+            
+networks:
+    proxy:
+        external: true
+        name: nginx-proxy
+    sabe-network:
+        driver: bridge
