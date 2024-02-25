@@ -3,11 +3,9 @@
 
 /config/php-conf/*
 /config/php-ini/*
-/config/nginx/*
 /config/redis/*
 !/config/php-conf/.gitkeep
 !/config/php-ini/.gitkeep
-!/config/nginx/.gitkeep
 !/config/redis/.gitkeep
 
 /data/mysql/*
@@ -17,8 +15,3 @@
 
 /logs/php/*
 !/logs/php/.gitkeep
-
-# Except index
-!/code/index.htm
-!/code/index.html
-!/code/index.php
