@@ -1,8 +1,9 @@
 # Exclude storages for projects
 .idea
-code/
-data/
+/code/**
+/config/**
+/data/**
+/logs/**
 
 # Except .gitkeep
-!/code/.gitkeep
-!/data/.gitkeep
+!/**/.gitkeep

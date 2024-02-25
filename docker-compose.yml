@@ -5,70 +5,74 @@ services:
     # php-fpm 8.2
     app:
         build:
-            context: ./docker_files
-            dockerfile: php.docker
-        image: sabe/php
-        container_name: sabe-php
+            context: ./dockerfiles
+            dockerfile: app.dockerfile
+        image: ${PROJECT_NAME}/app
+        container_name: ${PROJECT_NAME}-app
+        environment:
+            # nginx reverse proxy config
+            # see documnetation at https://hub.docker.com/r/jwilder/nginx-proxy/
+            - VIRTUAL_HOST=${PROJECT_NAME}.loc
         volumes:
-            - ./code:/code
-            # - ../../config/php:/usr/local/etc
+            - ./code:/var/www/html # code
+            - ./config/php-ini:/usr/local/etc/php # php.ini
+            - ./logs/php:/log/php # logs
         networks:
-            - sabe-network
-            
-    # nginx
-    # webserver:
-        # build:
-            # context: ./docker_files
-            # dockerfile: nginx.docker
-        # image: sabe/nginx
-        # container_name: sabe-nginx
-        # env_file: ./env/host.env
-        # volumes:
-            # - ./code:/code
-            # - ../../config/php:/etc/nginx/
-        # networks:
-            # - proxy
-            # - sabe-network
+            - inner
+            - nginx-proxy
             
     # mysql | mariadb
     db:
         build:
-            context: ./docker_files
-            dockerfile: db.docker
-        image: sabe/db
-        container_name: sabe-db
+            context: ./dockerfiles
+            dockerfile: db.dockerfile
+        image: ${PROJECT_NAME}/db
+        container_name: ${PROJECT_NAME}-db
         volumes:
             - ./data/mysql:/var/lib/mysql
-            - ./code:/code
-        env_file: ./env/db.env
+        environment:
+            - MARIADB_USER=${PROJECT_NAME}
+            - MARIADB_PASSWORD=${PROJECT_NAME}
+            - MARIADB_ROOT_PASSWORD=root
         ports:
             - "3308:3306"
         command: --default-authentication-plugin=mysql_native_password
         restart: unless-stopped
         networks:
-            - sabe-network
+            - inner
     
     #redis
     cache:
         build:
-            context: ./docker_files
-            dockerfile: cache.docker
-        image: sabe/cache
-        container_name: sabe-cache
+            context: ./dockerfiles
+            dockerfile: cache.dockerfile
+        image: ${PROJECT_NAME}/cache
+        container_name: ${PROJECT_NAME}-cache
         command: redis-server
-        env_file: ./env/cache.env
+        environment:
+            - REDIS_PASSWORD=replica_password
+            # - REDIS_MASTER_PASSWORD=master
+            # - REDIS_REPLICATION_MODE=slave
+            # - REDIS_MASTER_HOST=redis-master
+            # - REDIS_MASTER_PORT_NUMBER=6379
+            # - REDIS_MASTER_PASSWORD=my_master_password
+            # - ALLOW_EMPTY_PASSWORD=yes \
+            # - REDIS_TLS_ENABLED=yes \
+            # - REDIS_TLS_CERT_FILE=/opt/bitnami/redis/certs/redis.crt
+            # - REDIS_TLS_KEY_FILE=/opt/bitnami/redis/certs/redis.key
+            # - REDIS_TLS_CA_FILE=/opt/bitnami/redis/certs/redisCA.crt- 
         volumes:
             - ./code:/code
             - ./data/redis:/var/lib/redis
             - ./config/redis:/usr/local/etc/redis
         ports:
-            - "16379:6379"
+            - "16379:16379"
         networks:
-            - sabe-network
+            - inner
             
 networks:
-    proxy:
+    nginx-proxy:
         external: true
         name: nginx-proxy
-    sabe-network:
+    inner:
         driver: bridge
