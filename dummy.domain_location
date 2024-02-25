@@ -1,0 +1,4 @@
+include fastcgi_params;
+fastcgi_pass sabe-app:9000;
+fastcgi_index index.php;
+fastcgi_param SCRIPT_FILENAME /var/www/html/$fastcgi_script_name;
