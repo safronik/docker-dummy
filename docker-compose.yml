@@ -12,7 +12,9 @@ services:
         environment:
             # nginx reverse proxy config
             # see documnetation at https://hub.docker.com/r/jwilder/nginx-proxy/
-            - VIRTUAL_HOST=${PROJECT_NAME}.loc
+            VIRTUAL_HOST: "${PROJECT_NAME}.loc"
+            XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
+            PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
         volumes:
             - ./code:/var/www/html # code
             - ./config/php-ini:/usr/local/etc/php # php.ini
@@ -20,6 +22,8 @@ services:
         networks:
             - inner
             - nginx-proxy
+        extra_hosts:
+            host.docker.internal: host-gateway
             
     # mysql | mariadb
     db:
@@ -31,9 +35,9 @@ services:
         volumes:
             - ./data/mysql:/var/lib/mysql
         environment:
-            - MARIADB_USER=${PROJECT_NAME}
-            - MARIADB_PASSWORD=${PROJECT_NAME}
-            - MARIADB_ROOT_PASSWORD=root
+            MARIADB_USER: "${PROJECT_NAME}"
+            MARIADB_PASSWORD: "${PROJECT_NAME}"
+            MARIADB_ROOT_PASSWORD: "root"
         ports:
             - "${MYSQL_PORT}:3306"
         command: --default-authentication-plugin=mysql_native_password
@@ -50,17 +54,17 @@ services:
         container_name: ${PROJECT_NAME}-cache
         command: redis-server
         environment:
-            - REDIS_PASSWORD=replica_password
-            # - REDIS_MASTER_PASSWORD=master
-            # - REDIS_REPLICATION_MODE=slave
-            # - REDIS_MASTER_HOST=redis-master
-            # - REDIS_MASTER_PORT_NUMBER=6379
-            # - REDIS_MASTER_PASSWORD=my_master_password
-            # - ALLOW_EMPTY_PASSWORD=yes \
-            # - REDIS_TLS_ENABLED=yes \
-            # - REDIS_TLS_CERT_FILE=/opt/bitnami/redis/certs/redis.crt
-            # - REDIS_TLS_KEY_FILE=/opt/bitnami/redis/certs/redis.key
-            # - REDIS_TLS_CA_FILE=/opt/bitnami/redis/certs/redisCA.crt- 
+            REDIS_PASSWORD: "replica_password"
+            # REDIS_MASTER_PASSWORD: "master"
+            # REDIS_REPLICATION_MODE: "slave"
+            # REDIS_MASTER_HOST: "redis-master"
+            # REDIS_MASTER_PORT_NUMBER: "6379"
+            # REDIS_MASTER_PASSWORD: "my_master_password"
+            # ALLOW_EMPTY_PASSWORD: "yes"
+            # REDIS_TLS_ENABLED: "yes"
+            # REDIS_TLS_CERT_FILE: "/opt/bitnami/redis/certs/redis.crt"
+            # REDIS_TLS_KEY_FILE: "/opt/bitnami/redis/certs/redis.key"
+            # REDIS_TLS_CA_FILE: "/opt/bitnami/redis/certs/redisCA.crt"
         volumes:
             - ./code:/code
             - ./data/redis:/var/lib/redis

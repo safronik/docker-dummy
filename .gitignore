@@ -1,17 +1,25 @@
 # Exclude storages for projects
 .idea
 
-/config/php-conf/*
+# Configs
 /config/php-ini/*
-/config/redis/*
+!/config/php-ini/php.ini
+/config/php-conf/*
 !/config/php-conf/.gitkeep
-!/config/php-ini/.gitkeep
+/config/redis/*
 !/config/redis/.gitkeep
 
+# DB data
 /data/mysql/*
-/data/redis/*
 !/data/mysql/.gitkeep
+/data/redis/*
 !/data/redis/.gitkeep
 
+# Logs
 /logs/php/*
 !/logs/php/.gitkeep
+
+# Code
+/code/*
+!/code/index.php
+!/code/xdebug.php

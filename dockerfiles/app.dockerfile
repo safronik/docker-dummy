@@ -1,7 +1,7 @@
 FROM php:8.2-fpm
 
-# libs
-#RUN	apt-get update && apt-get install -y libfreetype6-dev
+# Libs
+#RUN apt-get update && apt-get install -y libfreetype6-dev
 RUN	apt-get update && apt-get install -y libjpeg62-turbo-dev
 RUN	apt-get update && apt-get install -y libpng-dev
 RUN	apt-get update && apt-get install -y libonig-dev
@@ -18,30 +18,38 @@ RUN apt-get update && apt-get install -y libidn2-dev
 #RUN apt-get update && apt-get install -y libidn11
 #RUN apt-get update && apt-get install -y libgnutls28-dev
 
-# apps
+# Convenience utils
+#RUN apt-get update && apt-get install -y iputils-ping
+#RUN apt-get update && apt-get install -y iproute2
+#RUN apt-get update && apt-get install -y mc
+
+# Debug utilits
+#RUN apt-get update && apt-get netcat -y mc
+#RUN apt-get update && apt-get lsof -y mc
+
+# Network apps
 RUN	apt-get install -y curl
 RUN	apt-get install -y wget
-#RUN	apt-get install -y git
 
-# PHP-extensions
+# PHP-extensions via Docker
+#RUN docker-php-ext-install -j$(nproc) iconv
+#RUN docker-php-ext-install -j$(nproc) mbstring
+#RUN docker-php-ext-install -j$(nproc) pdo_mysql
+#RUN docker-php-ext-install -j$(nproc) mysqli
+#RUN docker-php-ext-install -j$(nproc) zip
+#RUN docker-php-ext-configure gd && docker-php-ext-install -j$(nproc) gd 
+
+# PHP-extensions via PECL
+RUN yes "" | pecl install xdebug
 #RUN pecl install propro && docker-php-ext-enable propro
 #RUN pecl install raphf && docker-php-ext-enable raphf
 #RUN pecl install mcrypt && docker-php-ext-enable mcrypt
 #RUN pecl install redis && docker-php-ext-enable redis
 #RUN yes "" | pecl install pecl_http && docker-php-ext-enable http
 
-RUN docker-php-ext-install -j$(nproc) iconv
-RUN docker-php-ext-install -j$(nproc) mbstring
-RUN docker-php-ext-install -j$(nproc) pdo_mysql
-RUN docker-php-ext-install -j$(nproc) mysqli
-RUN docker-php-ext-install -j$(nproc) zip
-
-RUN docker-php-ext-configure gd \
-	 && docker-php-ext-install -j$(nproc) gd 
-
 # Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+#RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # NodeJS
 # DISABLED
-# RUN curl -sSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+#RUN curl -sSL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
