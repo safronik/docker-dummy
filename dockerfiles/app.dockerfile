@@ -46,18 +46,18 @@ RUN yes "" | pecl install xdebug
 #RUN pecl install mcrypt && docker-php-ext-enable mcrypt
 #RUN pecl install redis && docker-php-ext-enable redis
 #RUN yes "" | pecl install pecl_http && docker-php-ext-enable http
-RUN pecl install curl
-RUN pecl install fileinfo
-RUN pecl install ftp
-RUN pecl install mbstring
-RUN pecl install mysqli
-RUN pecl install openssl
-RUN pecl install yaml
-RUN pecl install pdo_mysql
-RUN pecl install pdo_oci
-RUN pecl install pdo_odbc
-RUN pecl install pdo_pgsql
-RUN pecl install pdo_sqlite
+#RUN pecl install curl
+#RUN pecl install fileinfo
+#RUN pecl install ftp
+#RUN pecl install mbstring
+#RUN pecl install mysqli
+#RUN pecl install openssl
+#RUN pecl install yaml
+#RUN pecl install pdo_mysql
+#RUN pecl install pdo_oci
+#RUN pecl install pdo_odbc
+#RUN pecl install pdo_pgsql
+#RUN pecl install pdo_sqlite
 
 # Composer
 #RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
