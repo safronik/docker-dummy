@@ -24,7 +24,22 @@ services:
             - nginx-proxy
         extra_hosts:
             host.docker.internal: host-gateway
-            
+    
+    # static content
+    static:
+        build:
+            context: ./dockerfiles
+            dockerfile: static.dockerfile
+        image: ${PROJECT_NAME}/static
+        container_name: ${PROJECT_NAME}-static
+        volumes:
+            - ./code:/var/www/html
+            - ./config/nginx/conf.d:/etc/nginx/conf.d
+            - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+        restart: unless-stopped
+        networks:
+            - inner
+    
     # mysql | mariadb
     db:
         build:
@@ -46,15 +61,15 @@ services:
             - inner
     
     #redis
-    cache:
-        build:
-            context: ./dockerfiles
-            dockerfile: cache.dockerfile
-        image: ${PROJECT_NAME}/cache
-        container_name: ${PROJECT_NAME}-cache
-        command: redis-server
-        environment:
-            REDIS_PASSWORD: "replica_password"
+    # cache:
+        # build:
+            # context: ./dockerfiles
+            # dockerfile: cache.dockerfile
+        # image: ${PROJECT_NAME}/cache
+        # container_name: ${PROJECT_NAME}-cache
+        # command: redis-server
+        # environment:
+            # REDIS_PASSWORD: "replica_password"
             # REDIS_MASTER_PASSWORD: "master"
             # REDIS_REPLICATION_MODE: "slave"
             # REDIS_MASTER_HOST: "redis-master"
@@ -65,14 +80,14 @@ services:
             # REDIS_TLS_CERT_FILE: "/opt/bitnami/redis/certs/redis.crt"
             # REDIS_TLS_KEY_FILE: "/opt/bitnami/redis/certs/redis.key"
             # REDIS_TLS_CA_FILE: "/opt/bitnami/redis/certs/redisCA.crt"
-        volumes:
-            - ./code:/code
-            - ./data/redis:/var/lib/redis
-            - ./config/redis:/usr/local/etc/redis
-        ports:
-            - "${REDIS_PORT}:16379"
-        networks:
-            - inner
+        # volumes:
+            # - ./code:/code
+            # - ./data/redis:/var/lib/redis
+            # - ./config/redis:/usr/local/etc/redis
+        # ports:
+            # - "${REDIS_PORT}:16379"
+        # networks:
+            # - inner
             
 networks:
     nginx-proxy:
