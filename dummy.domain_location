@@ -1,13 +1,4 @@
-# Proxing static content
-location ~ \.(js|jpg|png|css|htm|html)$ {
-	proxy_pass {PROJECT_NAME}-static:80
-	expires 30d;
-}
-
 # Proxing scripts
 location / {
-	include fastcgi_params;
-	fastcgi_pass {PROJECT_NAME}-app:9000;
-	fastcgi_index index.php;
-	fastcgi_param SCRIPT_FILENAME /var/www/html/$fastcgi_script_name;
+	proxy_pass http://{PROJECT_NAME}-router;
 }
