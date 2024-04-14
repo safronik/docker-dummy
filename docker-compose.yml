@@ -25,12 +25,12 @@ services:
             host.docker.internal: host-gateway
     
     # static content
-    static:
+    router:
         build:
             context: ./dockerfiles
             dockerfile: static.dockerfile
-        image: ${PROJECT_NAME}/static
-        container_name: ${PROJECT_NAME}-static
+        image: ${PROJECT_NAME}/router
+        container_name: ${PROJECT_NAME}-router
         volumes:
             - ./code:/var/www/html
             - ./config/nginx/conf.d:/etc/nginx/conf.d
