@@ -21,7 +21,6 @@ services:
             - ./logs/php:/log/php # logs
         networks:
             - inner
-            - nginx-proxy
         extra_hosts:
             host.docker.internal: host-gateway
     
@@ -36,9 +35,11 @@ services:
             - ./code:/var/www/html
             - ./config/nginx/conf.d:/etc/nginx/conf.d
             - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+            - ./logs/nginx:/var/log/nginx
         restart: unless-stopped
         networks:
             - inner
+            - nginx-proxy
     
     # mysql | mariadb
     db:
@@ -59,35 +60,6 @@ services:
         restart: unless-stopped
         networks:
             - inner
-    
-    #redis
-    # cache:
-        # build:
-            # context: ./dockerfiles
-            # dockerfile: cache.dockerfile
-        # image: ${PROJECT_NAME}/cache
-        # container_name: ${PROJECT_NAME}-cache
-        # command: redis-server
-        # environment:
-            # REDIS_PASSWORD: "replica_password"
-            # REDIS_MASTER_PASSWORD: "master"
-            # REDIS_REPLICATION_MODE: "slave"
-            # REDIS_MASTER_HOST: "redis-master"
-            # REDIS_MASTER_PORT_NUMBER: "6379"
-            # REDIS_MASTER_PASSWORD: "my_master_password"
-            # ALLOW_EMPTY_PASSWORD: "yes"
-            # REDIS_TLS_ENABLED: "yes"
-            # REDIS_TLS_CERT_FILE: "/opt/bitnami/redis/certs/redis.crt"
-            # REDIS_TLS_KEY_FILE: "/opt/bitnami/redis/certs/redis.key"
-            # REDIS_TLS_CA_FILE: "/opt/bitnami/redis/certs/redisCA.crt"
-        # volumes:
-            # - ./code:/code
-            # - ./data/redis:/var/lib/redis
-            # - ./config/redis:/usr/local/etc/redis
-        # ports:
-            # - "${REDIS_PORT}:16379"
-        # networks:
-            # - inner
             
 networks:
     nginx-proxy:
