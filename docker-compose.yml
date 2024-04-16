@@ -2,7 +2,7 @@ version: '3'
 
 services:
 
-    # php-fpm 8.2
+    # php-fpm
     app:
         build:
             context: ./dockerfiles
@@ -10,8 +10,6 @@ services:
         image: ${PROJECT_NAME}/app
         container_name: ${PROJECT_NAME}-app
         environment:
-            # nginx reverse proxy config
-            # see documnetation at https://hub.docker.com/r/jwilder/nginx-proxy/
             VIRTUAL_HOST: "${PROJECT_NAME}.loc"
             XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
@@ -24,7 +22,7 @@ services:
         extra_hosts:
             host.docker.internal: host-gateway
     
-    # static content
+    # inner router
     router:
         build:
             context: ./dockerfiles
