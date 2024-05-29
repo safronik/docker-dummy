@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM php:8.2-fpm
+FROM php:8.2-fpm as test
 
 # Easy way to install extensions with all dependencies
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
