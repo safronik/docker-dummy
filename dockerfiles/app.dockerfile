@@ -15,7 +15,7 @@ RUN install-php-extensions pdo_sqlite pdo_pgsql openssl imap
 
 FROM dev as debug
 # Utilits
-RUN apt update && apt install -y mc
+# RUN apt update && apt install -y mc
 
 # Network utilits
 RUN apt update && apt install -y iproute2 iputils-ping lsof
