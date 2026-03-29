@@ -7,10 +7,10 @@ services:
         build:
             context: ./dockerfiles
             dockerfile: app.dockerfile
-        image: ${PROJECT_NAME}/app
+        image: ${PROJECT_NAME}/php
         container_name: ${PROJECT_NAME}-app
         environment:
-            VIRTUAL_HOST: "${PROJECT_NAME}.loc"
+            VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
             XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
         volumes:
@@ -21,8 +21,8 @@ services:
             - inner
         extra_hosts:
             host.docker.internal: host-gateway
-    
-    # inner router
+
+    # nginx
     router:
         build:
             context: ./dockerfiles
@@ -38,27 +38,30 @@ services:
         networks:
             - inner
             - nginx-proxy
-    
-    # mysql | mariadb
+
+    # mariadb | postgres
     db:
         build:
             context: ./dockerfiles
-            dockerfile: db.dockerfile
+            dockerfile: {DB_DOCKERFILE}
         image: ${PROJECT_NAME}/db
         container_name: ${PROJECT_NAME}-db
         volumes:
-            - ./data/mysql:/var/lib/mysql
+            - {DB_DATA_VOLUME}
         environment:
             MARIADB_USER: "${PROJECT_NAME}"
             MARIADB_PASSWORD: "${PROJECT_NAME}"
-            MARIADB_ROOT_PASSWORD: "root"
+            MARIADB_ROOT_PASSWORD: "${DB_PASSWORD}"
+            POSTGRES_DB: "${PROJECT_NAME}"
+            POSTGRES_USER: "${PROJECT_NAME}"
+            POSTGRES_PASSWORD: "${DB_PASSWORD}"
         ports:
-            - "${MYSQL_PORT}:3306"
-        command: --default-authentication-plugin=mysql_native_password
+            - "${DB_PORT}:{DB_PORT_INTERNAL}"
+        command: {DB_COMMAND}
         restart: unless-stopped
         networks:
             - inner
-            
+
 networks:
     nginx-proxy:
         external: true

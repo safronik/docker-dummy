@@ -12,6 +12,8 @@
 # DB data
 /data/mysql/*
 !/data/mysql/.gitkeep
+/data/postgres/*
+!/data/postgres/.gitkeep
 /data/redis/*
 !/data/redis/.gitkeep
 
