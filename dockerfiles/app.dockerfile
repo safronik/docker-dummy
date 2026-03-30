@@ -1,11 +1,17 @@
 # syntax=docker/dockerfile:1
-FROM php:8.3-fpm as test
+
+
+# ----- PROD -----
+FROM php:8.4-fpm as prod
 
 # Easy way to install extensions with all dependencies
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
+# APT. Common
 # RUN apt update && apt install cron
-RUN install-php-extensions curl opcache pdo_mysql redis sodium iconv mbstring zip fileinfo intl xdebug
+
+# PECL. Common
+RUN install-php-extensions opcache memcached mbstring zip intl redis pdo_mysql pdo_pgsql pdo_sqlite
 RUN install-php-extensions @composer
 
 # Solution for composer execution problem
