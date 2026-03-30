@@ -43,21 +43,22 @@ services:
     db:
         build:
             context: ./dockerfiles
-            dockerfile: {DB_DOCKERFILE}
+            dockerfile: ${DB_DOCKERFILE}
         image: ${PROJECT_NAME}/db
         container_name: ${PROJECT_NAME}-db
         volumes:
-            - {DB_DATA_VOLUME}
+            - ${DB_DATA_VOLUME}
         environment:
-            MARIADB_USER: "${PROJECT_NAME}"
-            MARIADB_PASSWORD: "${PROJECT_NAME}"
-            MARIADB_ROOT_PASSWORD: "${DB_PASSWORD}"
-            POSTGRES_DB: "${PROJECT_NAME}"
-            POSTGRES_USER: "${PROJECT_NAME}"
-            POSTGRES_PASSWORD: "${DB_PASSWORD}"
+            POSTGRES_DB: ${PROJECT_NAME}
+            POSTGRES_USER: ${PROJECT_NAME}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            PGDATA: /var/lib/postgresql/data/pgdata
+            MARIADB_USER: ${PROJECT_NAME}
+            MARIADB_PASSWORD: ${PROJECT_NAME}
+            MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
         ports:
-            - "${DB_PORT}:{DB_PORT_INTERNAL}"
-        command: {DB_COMMAND}
+            - "${DB_PORT}:${DB_PORT_INTERNAL}"
+        command: ${DB_COMMAND}
         restart: unless-stopped
         networks:
             - inner
