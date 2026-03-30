@@ -10,7 +10,6 @@ RUN install-php-extensions @composer
 
 # Solution for composer execution problem
 RUN echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc
-RUN source ~/.bashrc
 
 # DEV
 FROM test as dev
