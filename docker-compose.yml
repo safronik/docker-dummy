@@ -13,7 +13,7 @@ services:
         volumes:
             - ./code:/var/www/html
             - ./config/nginx/conf.d:/etc/nginx/conf.d
-            - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+            - ./config/nginx/vhost.d/${APP:-dev}:/etc/nginx/vhost.d
             - ./logs/nginx:/var/log/nginx
         restart: unless-stopped
         networks:
@@ -35,6 +35,7 @@ services:
             VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
             XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
+        working_dir: /var/www/html/backend
         volumes:
             - ./code:/var/www/html # code
             - ./config/php-ini:/usr/local/etc/php # php.ini
@@ -54,7 +55,7 @@ services:
           dockerfile: node.dockerfile
       image: ${PROJECT_NAME}/node
       container_name: ${PROJECT_NAME}-node
-      working_dir: /var/www/html
+      working_dir: /var/www/html/frontend
       volumes:
           - ./code:/var/www/html
       ports:
