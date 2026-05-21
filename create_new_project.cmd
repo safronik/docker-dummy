@@ -105,11 +105,11 @@ erase data\mysql\.gitkeep
 erase data\postgres\.gitkeep
 
 :: init docker
-@REM docker login
-@REM docker compose up -d
+docker login
+docker compose up -d
 
 :: restart main router
-@REM docker restart router-nginx
+docker restart router-nginx
 echo "Main router restarted"
 pause
 
