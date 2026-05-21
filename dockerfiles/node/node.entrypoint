@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+if [ ! -f package.json ]; then
+    npm init -y
+    npm install vue
+    npm install -D vite @vitejs/plugin-vue vite-plugin-symfony
+    npm pkg set scripts.dev="vite --host 0.0.0.0"
+fi
+
+if [ -f package.json ] && [ ! -d node_modules ]; then
+    npm install
+fi
+
+exec "$@"

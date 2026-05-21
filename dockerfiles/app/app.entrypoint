@@ -1,0 +1,51 @@
+#!/bin/sh
+set -e
+
+cd /var/www/html
+
+# First run, project is empty
+if [ ! -f composer.json ]; then
+    echo "==> Creating Symfony project..."
+    # Скелет
+    composer create-project symfony/skeleton:"8.*" ./
+    # Webapp (Фаза 1)
+    composer require webapp
+    # Doctrine (Фаза 2)
+    composer require symfony/orm-pack
+    # Validator + Serializer (Фаза 2)
+    composer require symfony/validator symfony/serializer
+    # Security (Фаза 3)
+    composer require symfony/security-bundle
+fi
+
+echo "==> Installing composer dependencies..."
+composer install
+
+# ----- PROD -----
+if [ "$APP_ENV" = "prod" ]; then
+    echo "==> Installing PROD dependencies..."
+    echo "...empty"
+fi
+
+# ----- DEV -----
+if [ "$APP_ENV" = "dev" ]; then
+    echo "==> Installing DEV dependencies..."
+    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch 
+    composer require --dev symfony/maker-bundle
+    # NodeJS
+    # RUN curl -sSL https://deb.nodesource.com/setup_16.x | bash - && apt install -y nodejs
+fi
+
+# ----- DEBUG -----
+if [ "$APP_ENV" = "test" ]; then
+    echo "==> Installing TEST dependencies..."
+    echo "...empty"
+fi
+
+# ----- DEBUG -----
+if [ "$APP_ENV" = "debug" ]; then
+    echo "==> Installing DEBUG dependencies..."
+    echo "...empty"
+fi
+
+exec "$@"
