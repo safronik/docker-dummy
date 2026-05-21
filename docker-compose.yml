@@ -59,7 +59,7 @@ services:
       volumes:
           - ./code:/var/www/html
       ports:
-          - "5173:5173" #todo make this port adjustable
+          - "${NODE_EXTERNAL_PORT}:5173"
       networks:
           - inner
       stdin_open: true

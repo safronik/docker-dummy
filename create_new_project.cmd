@@ -27,6 +27,7 @@ set /p DESTINATION=Where to install? (Disk letter is required. for example 'd:\d
 set /p PROJECT_NAME=Enter the project name:
 set /p PROJECT_DOMAIN=Enter the project first level domain:
 set /p XDEBUG_REMOTE_PORT=XDebug port(for IDE settings):
+set /p NODE_EXTERNAL_PORT=Node container external port:
 :: DB choice
 echo.
 echo Choose database:
