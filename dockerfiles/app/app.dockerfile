@@ -41,7 +41,8 @@ CMD ["php-fpm"]
 FROM base AS dev
 ENV APP_ENV=dev
 
-RUN install-php-extensions xdebug curl
+RUN install-php-extensions xdebug-3.4.7
+RUN install-php-extensions curl
 
 COPY app.entrypoint /app.entrypoint
 RUN sed -i 's/\r//' /app.entrypoint && chmod +x /app.entrypoint
