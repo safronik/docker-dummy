@@ -26,6 +26,9 @@ install: ## Install dependencies without running the whole application
 	${DOCKER_COMPOSE_RUN} composer install
 
 build: ## Build services. Supports service name argument
+	${DOCKER_COMPOSE} build $(filter-out $@,$(MAKECMDGOALS))
+
+build-no-cache: ## Build services without cache. Supports service name argument
 	${DOCKER_COMPOSE} build $(filter-out $@,$(MAKECMDGOALS)) --no-cache
 
 up: ## Create and start services. Supports service name argument
