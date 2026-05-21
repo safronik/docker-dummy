@@ -60,6 +60,8 @@ services:
           - ./code:/var/www/html
       ports:
           - "${NODE_EXTERNAL_PORT}:5173"
+      environment:
+          __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${PROJECT_NAME}.${PROJECT_DOMAIN}
       networks:
           - inner
       stdin_open: true
