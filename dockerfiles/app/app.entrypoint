@@ -1,21 +1,30 @@
 #!/bin/sh
-set -e
 
-cd /var/www/html
+set -e
+export COMPOSER_NO_INTERACTION=1
 
 # First run, project is empty
 if [ ! -f composer.json ]; then
     echo "==> Creating Symfony project..."
-    # Скелет
-    composer create-project symfony/skeleton:"8.*" ./
-    # Webapp (Фаза 1)
-    composer require webapp
-    # Doctrine (Фаза 2)
-    composer require symfony/orm-pack
-    # Validator + Serializer (Фаза 2)
-    composer require symfony/validator symfony/serializer
-    # Security (Фаза 3)
-    composer require symfony/security-bundle
+
+    # Skeleton
+    composer create-project symfony/skeleton:"8.*" ./ --no-interaction
+
+    # Base
+    echo "==> Installing symfony/serializer..."
+    composer require symfony/validator symfony/serializer --no-interaction
+    echo "==> Installing symfony/orm-pack..."
+    composer require symfony/orm-pack --no-interaction
+    echo "==> Installing api-platform/core..."
+    composer require api-platform/core --no-interaction
+    echo "==> Installing symfony/security-bundle..."
+    composer require symfony/security-bundle --no-interaction
+    echo "==> Installing symfony/http-client..."
+    composer require symfony/http-client --no-interaction
+
+    # SPA
+    composer require nelmio/cors-bundle --no-interaction
+    composer require symfony/serializer-pack --no-interaction
 fi
 
 echo "==> Installing composer dependencies..."
@@ -30,10 +39,8 @@ fi
 # ----- DEV -----
 if [ "$APP_ENV" = "dev" ]; then
     echo "==> Installing DEV dependencies..."
-    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch 
-    composer require --dev symfony/maker-bundle
-    # NodeJS
-    # RUN curl -sSL https://deb.nodesource.com/setup_16.x | bash - && apt install -y nodejs
+    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
+    composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
 fi
 
 # ----- DEBUG -----

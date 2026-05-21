@@ -2,8 +2,9 @@ FROM node:22-alpine
 
 WORKDIR /var/www/html
 
-# Install git (needed by some npm packages)
+# Common
 RUN apk add --no-cache git
+RUN apk add --no-cache bash
 
 COPY node.entrypoint /entrypoint.sh
 RUN chmod +x /entrypoint.sh
