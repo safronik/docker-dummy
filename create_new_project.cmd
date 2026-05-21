@@ -129,6 +129,7 @@ rd /s/q .git
 :: erase .env
 :: erase docker-compose.yml
 erase dummy.domain_location
+erase create_new_project.cmd
 erase %PROJECT_NAME%.%PROJECT_DOMAIN%_location
 :: rd /s/q dockerfiles
 
