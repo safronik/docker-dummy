@@ -1,12 +1,34 @@
-version: '3' 
-
 services:
+
+    # nginx router
+    router:
+        env_file:
+          - path: .env.${APP:-dev}
+            required: false
+        build:
+            context: ./dockerfiles/infrastructure
+            dockerfile: router.dockerfile
+        image: ${PROJECT_NAME}/router
+        container_name: ${PROJECT_NAME}-router
+        volumes:
+            - ./code:/var/www/html
+            - ./config/nginx/conf.d:/etc/nginx/conf.d
+            - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+            - ./logs/nginx:/var/log/nginx
+        restart: unless-stopped
+        networks:
+            - inner
+            - nginx-proxy
 
     # php-fpm
     app:
+        env_file:
+          - path: .env.${APP:-dev}
+            required: false
         build:
-            context: ./dockerfiles
+            context: ./dockerfiles/app
             dockerfile: app.dockerfile
+            target: ${APP:-dev}
         image: ${PROJECT_NAME}/php
         container_name: ${PROJECT_NAME}-app
         environment:
@@ -22,27 +44,33 @@ services:
         extra_hosts:
             host.docker.internal: host-gateway
 
-    # nginx
-    router:
-        build:
-            context: ./dockerfiles
-            dockerfile: static.dockerfile
-        image: ${PROJECT_NAME}/router
-        container_name: ${PROJECT_NAME}-router
-        volumes:
-            - ./code:/var/www/html
-            - ./config/nginx/conf.d:/etc/nginx/conf.d
-            - ./config/nginx/vhost.d:/etc/nginx/vhost.d
-            - ./logs/nginx:/var/log/nginx
-        restart: unless-stopped
-        networks:
-            - inner
-            - nginx-proxy
+    # node
+    node:
+      env_file:
+        - path: .env.${APP:-dev}
+          required: false
+      build:
+          context: ./dockerfiles/node
+          dockerfile: node.dockerfile
+      image: ${PROJECT_NAME}/node
+      container_name: ${PROJECT_NAME}-node
+      working_dir: /var/www/html
+      volumes:
+          - ./code:/var/www/html
+      ports:
+          - "5173:5173" #todo make this port adjustable
+      networks:
+          - inner
+      stdin_open: true
+      tty: true
 
     # mariadb | postgres
     db:
+        env_file:
+          - path: .env.${APP:-dev}
+            required: false
         build:
-            context: ./dockerfiles
+            context: ./dockerfiles/db
             dockerfile: ${DB_DOCKERFILE}
         image: ${PROJECT_NAME}/db
         container_name: ${PROJECT_NAME}-db
