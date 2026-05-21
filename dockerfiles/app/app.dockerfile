@@ -11,7 +11,14 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 RUN ln -s /usr/local/bin/install-php-extensions /usr/local/bin/uninstall-php-extensions
 
 # PHP-modules
-RUN install-php-extensions mbstring zip intl redis pdo_mysql pdo_pgsql pdo_sqlite
+# PHP-modules
+RUN install-php-extensions mbstring
+RUN install-php-extensions zip
+RUN install-php-extensions intl
+RUN install-php-extensions redis
+RUN install-php-extensions pdo_mysql
+RUN install-php-extensions pdo_pgsql
+RUN install-php-extensions pdo_sqlite
 RUN install-php-extensions @composer
 
 # Composer
