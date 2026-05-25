@@ -38,18 +38,16 @@ if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause 
 set /p NEED_BACKEND=Do you need backend? (Y/N):
 if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
 if "%NEED_BACKEND%"=="N" (set BACKEND=false)
-if "%BACKEND%"=="true"(
-
+if "%BACKEND%"=="true" (
     set PROFILES=backend,
-
-    set /p XDEBUG_REMOTE_PORT=XDebug port(for IDE settings):
+    set /p XDEBUG_REMOTE_PORT=XDebug port^(for IDE settings^):
 )
 
 :: FRONTEND
 set /p NEED_FRONTEND=Do you need frontend? (Y/N):
 if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
 if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
-if "%FRONTEND%"=="true"(
+if "%FRONTEND%"=="true" (
 
     set PROFILES=%PROFILES%frontend,
 
@@ -60,15 +58,15 @@ if "%FRONTEND%"=="true"(
 set /p NEED_STORAGE=Do you need storage? (Y/N):
 if "%NEED_STORAGE%"=="Y" (set STORAGE=true)
 if "%NEED_STORAGE%"=="N" (set STORAGE=false)
-if "%STORAGE%"=="true"(
+if "%STORAGE%"=="true" (
 
     set PROFILES=%PROFILES%storage,
 
     :: DB choice
     echo Choose database:
-    echo   1 - PostgreSQL (default)
+    echo   1 - PostgreSQL ^(default^)
     echo   2 - MariaDB
-    set /p DB_CHOICE=Your choice (1/2):
+    set /p DB_CHOICE=Your choice ^(1/2^):
 
     if "%DB_CHOICE%"=="1" (
         set DB_DOCKERFILE=postgres.dockerfile
