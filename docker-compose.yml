@@ -1,9 +1,8 @@
 services:
 
-    # nginx router
     router:
         env_file:
-          - path: .env.${APP:-dev}
+          - path: .env.${ENV_STAGE:-dev}
             required: false
         build:
             context: ./dockerfiles/infrastructure
@@ -13,7 +12,7 @@ services:
         volumes:
             - ./code:/var/www/html
             - ./config/nginx/conf.d:/etc/nginx/conf.d
-            - ./config/nginx/vhost.d/${APP:-dev}:/etc/nginx/vhost.d
+            - ./config/nginx/vhost.d/${ENV_STAGE:-dev}:/etc/nginx/vhost.d
             - ./logs/nginx:/var/log/nginx
         restart: unless-stopped
         networks:
@@ -22,17 +21,13 @@ services:
 
     backend:
         env_file:
-          - path: .env.${APP:-dev}
+          - path: .env.${ENV_STAGE:-dev}
             required: false
         build:
-            context: ./dockerfiles/app
-            dockerfile: app.dockerfile
-            target: ${APP:-dev}
-        image: ${PROJECT_NAME}/php
-        container_name: ${PROJECT_NAME}-app
             context: ./dockerfiles/backend
             dockerfile: backend.dockerfile
             target: ${ENV_STAGE:-dev}
+        profiles: ["backend"]
         image: ${PROJECT_NAME}/backend
         container_name: ${PROJECT_NAME}-backend
         environment:
@@ -51,15 +46,12 @@ services:
 
     +frontend:
       env_file:
-        - path: .env.${APP:-dev}
+        - path: .env.${ENV_STAGE:-dev}
           required: false
       build:
-          context: ./dockerfiles/node
-          dockerfile: node.dockerfile
-      image: ${PROJECT_NAME}/node
-      container_name: ${PROJECT_NAME}-node
           context: ./dockerfiles/frontend
           dockerfile: frontend.dockerfile
+      profiles: ["frontend"]
       image: ${PROJECT_NAME}/frontend
       container_name: ${PROJECT_NAME}-frontend
       working_dir: /var/www/html/frontend
@@ -77,13 +69,12 @@ services:
     # mariadb | postgres
     storage:
         env_file:
-          - path: .env.${APP:-dev}
+          - path: .env.${ENV_STAGE:-dev}
             required: false
         build:
             context: ./dockerfiles/storage
             dockerfile: ${DB_DOCKERFILE}
-        image: ${PROJECT_NAME}/db
-        container_name: ${PROJECT_NAME}-db
+        profiles: ["storage"]
         image: ${PROJECT_NAME}/storage
         container_name: ${PROJECT_NAME}-storage
         volumes:

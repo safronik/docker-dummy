@@ -20,40 +20,79 @@ if %ERRORLEVEL% EQU 0 (
 	exit
 )
 
-:: GATHER DATA
+set PROFILES=
+
+:: GENERAL SETTINGS
 :: Install folder
 set /p DESTINATION=Where to install? (Disk letter is required. for example 'd:\docker'):
-:: get input
 set /p PROJECT_NAME=Enter the project name:
 set /p PROJECT_DOMAIN=Enter the project first level domain:
-set /p XDEBUG_REMOTE_PORT=XDebug port(for IDE settings):
-set /p NODE_EXTERNAL_PORT=Node container external port:
-:: DB choice
-echo.
-echo Choose database:
-echo   1 - PostgreSQL (default)
-echo   2 - MariaDB
-set /p DB_CHOICE=Your choice (1/2):
+set /p ENV_STAGE=Enter the environment stage (dev/prod/test/debug):
+if "%ENV_STAGE%"=="dev" set ENV_STAGE_VALID=1
+if "%ENV_STAGE%"=="prod" set ENV_STAGE_VALID=1
+if "%ENV_STAGE%"=="test" set ENV_STAGE_VALID=1
+if "%ENV_STAGE%"=="debug" set ENV_STAGE_VALID=1
+if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause && exit)
 
-if "%DB_CHOICE%"=="1" (
-    set DB_DOCKERFILE=postgres.dockerfile
-    set DB_DATA_VOLUME=./data/postgres:/var/lib/postgresql/data/pgdata
-    set DB_PORT_INTERNAL=5432
-    set DB_COMMAND=postgres
-    set DB_PORT=5432
+:: BACKEND
+set /p NEED_BACKEND=Do you need backend? (Y/N):
+if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
+if "%NEED_BACKEND%"=="N" (set BACKEND=false)
+if "%BACKEND%"=="true"(
+
+    set PROFILES=backend,
+
+    set /p XDEBUG_REMOTE_PORT=XDebug port(for IDE settings):
 )
-if "%DB_CHOICE%"=="2" (
-    set DB_DOCKERFILE=mariadb.dockerfile
-    set DB_DATA_VOLUME=./data/mysql:/var/lib/mysql
-    set DB_PORT_INTERNAL=3306
-    set DB_COMMAND=mysqld
-    set DB_PORT=3306
+
+:: FRONTEND
+set /p NEED_FRONTEND=Do you need frontend? (Y/N):
+if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
+if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
+if "%FRONTEND%"=="true"(
+
+    set PROFILES=%PROFILES%frontend,
+
+    set /p NODE_EXTERNAL_PORT=Node container external port:
 )
-set /p DB_PORT=Database outer port [!DB_PORT!]:
-if "!DB_PORT!"=="" (
-    if "%DB_CHOICE%"=="1" (set DB_PORT=5432)
-    if "%DB_CHOICE%"=="2" (set DB_PORT=3306)
+
+:: STORAGE
+set /p NEED_STORAGE=Do you need storage? (Y/N):
+if "%NEED_STORAGE%"=="Y" (set STORAGE=true)
+if "%NEED_STORAGE%"=="N" (set STORAGE=false)
+if "%STORAGE%"=="true"(
+
+    set PROFILES=%PROFILES%storage,
+
+    :: DB choice
+    echo Choose database:
+    echo   1 - PostgreSQL (default)
+    echo   2 - MariaDB
+    set /p DB_CHOICE=Your choice (1/2):
+
+    if "%DB_CHOICE%"=="1" (
+        set DB_DOCKERFILE=postgres.dockerfile
+        set DB_DATA_VOLUME=./data/postgres:/var/lib/postgresql/data/pgdata
+        set DB_PORT_INTERNAL=5432
+        set DB_COMMAND=postgres
+        set DB_PORT=5432
+    )
+    if "%DB_CHOICE%"=="2" (
+        set DB_DOCKERFILE=mariadb.dockerfile
+        set DB_DATA_VOLUME=./data/mysql:/var/lib/mysql
+        set DB_PORT_INTERNAL=3306
+        set DB_COMMAND=mysqld
+        set DB_PORT=3306
+    )
+    set /p DB_PORT=Database outer port [!DB_PORT!]:
+    if "!DB_PORT!"=="" (
+        if "%DB_CHOICE%"=="1" (set DB_PORT=5432)
+        if "%DB_CHOICE%"=="2" (set DB_PORT=3306)
+    )
 )
+
+:: CLEANING UP PROFILES STRING, DELETING LAST COMMA
+set PROFILES=%profiles:~0,-1%
 
 echo "Your project is %PROJECT_NAME%.%PROJECT_DOMAIN%"
 echo "Folder %DESTINATION%\%PROJECT_NAME% will be created"
@@ -107,7 +146,7 @@ erase data\postgres\.gitkeep
 
 :: init docker
 docker login
-docker compose up -d
+COMPOSE_PROFILES=%PROFILES% docker compose up -d
 
 :: restart main router
 docker restart router-nginx
