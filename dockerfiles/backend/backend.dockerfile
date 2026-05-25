@@ -27,40 +27,40 @@ RUN install-php-extensions @composer
 
 # ----- PROD -----
 FROM base AS prod
-ENV APP_ENV=prod
+ENV ENV_STAGE=prod
 
 RUN composer install
 RUN install-php-extensions opcache memcached
 
-COPY app.entrypoint /app.entrypoint
-RUN sed -i 's/\r//' /app.entrypoint && chmod +x /app.entrypoint
-ENTRYPOINT ["/app.entrypoint"]
+COPY backend.entrypoint /backend.entrypoint
+RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
+ENTRYPOINT ["/backend.entrypoint"]
 CMD ["php-fpm"]
 
 # ----- DEV -----
 FROM base AS dev
-ENV APP_ENV=dev
+ENV ENV_STAGE=dev
 
 RUN install-php-extensions xdebug-3.4.7
 RUN install-php-extensions curl
 
-COPY app.entrypoint /app.entrypoint
-RUN sed -i 's/\r//' /app.entrypoint && chmod +x /app.entrypoint
-ENTRYPOINT ["/app.entrypoint"]
+COPY backend.entrypoint /backend.entrypoint
+RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
+ENTRYPOINT ["/backend.entrypoint"]
 CMD ["php-fpm"]
 
 # ----- TEST -----
 FROM base AS test
-ENV APP_ENV=test
+ENV ENV_STAGE=test
 
-COPY app.entrypoint /app.entrypoint
-RUN sed -i 's/\r//' /app.entrypoint && chmod +x /app.entrypoint
-ENTRYPOINT ["/app.entrypoint"]
+COPY backend.entrypoint /backend.entrypoint
+RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
+ENTRYPOINT ["/backend.entrypoint"]
 CMD ["php-fpm"]
 
 # ----- DEBUG -----
 FROM base AS debug
-ENV APP_ENV=debug
+ENV ENV_STAGE=debug
 
 # Utils
 RUN apt update && apt install -y mc
@@ -68,7 +68,7 @@ RUN apt update && apt install -y mc
 # Network utils
 RUN apt update && apt install -y iproute2 iputils-ping lsof
 
-COPY app.entrypoint /app.entrypoint
-RUN sed -i 's/\r//' /app.entrypoint && chmod +x /app.entrypoint
-ENTRYPOINT ["/app.entrypoint"]
+COPY backend.entrypoint /backend.entrypoint
+RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
+ENTRYPOINT ["/backend.entrypoint"]
 CMD ["php-fpm"]

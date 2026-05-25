@@ -20,8 +20,7 @@ services:
             - inner
             - nginx-proxy
 
-    # php-fpm
-    app:
+    backend:
         env_file:
           - path: .env.${APP:-dev}
             required: false
@@ -31,6 +30,11 @@ services:
             target: ${APP:-dev}
         image: ${PROJECT_NAME}/php
         container_name: ${PROJECT_NAME}-app
+            context: ./dockerfiles/backend
+            dockerfile: backend.dockerfile
+            target: ${ENV_STAGE:-dev}
+        image: ${PROJECT_NAME}/backend
+        container_name: ${PROJECT_NAME}-backend
         environment:
             VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
             XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
@@ -45,8 +49,7 @@ services:
         extra_hosts:
             host.docker.internal: host-gateway
 
-    # node
-    node:
+    +frontend:
       env_file:
         - path: .env.${APP:-dev}
           required: false
@@ -55,6 +58,10 @@ services:
           dockerfile: node.dockerfile
       image: ${PROJECT_NAME}/node
       container_name: ${PROJECT_NAME}-node
+          context: ./dockerfiles/frontend
+          dockerfile: frontend.dockerfile
+      image: ${PROJECT_NAME}/frontend
+      container_name: ${PROJECT_NAME}-frontend
       working_dir: /var/www/html/frontend
       volumes:
           - ./code:/var/www/html
@@ -68,15 +75,17 @@ services:
       tty: true
 
     # mariadb | postgres
-    db:
+    storage:
         env_file:
           - path: .env.${APP:-dev}
             required: false
         build:
-            context: ./dockerfiles/db
+            context: ./dockerfiles/storage
             dockerfile: ${DB_DOCKERFILE}
         image: ${PROJECT_NAME}/db
         container_name: ${PROJECT_NAME}-db
+        image: ${PROJECT_NAME}/storage
+        container_name: ${PROJECT_NAME}-storage
         volumes:
             - ${DB_DATA_VOLUME}
         environment:

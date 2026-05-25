@@ -31,26 +31,26 @@ echo "==> Installing composer dependencies..."
 composer install
 
 # ----- PROD -----
-if [ "$APP_ENV" = "prod" ]; then
+if [ "$ENV_STAGE" = "prod" ]; then
     echo "==> Installing PROD dependencies..."
     echo "...empty"
 fi
 
 # ----- DEV -----
-if [ "$APP_ENV" = "dev" ]; then
+if [ "$ENV_STAGE" = "dev" ]; then
     echo "==> Installing DEV dependencies..."
     echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
     composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
 fi
 
 # ----- DEBUG -----
-if [ "$APP_ENV" = "test" ]; then
+if [ "$ENV_STAGE" = "test" ]; then
     echo "==> Installing TEST dependencies..."
     echo "...empty"
 fi
 
 # ----- DEBUG -----
-if [ "$APP_ENV" = "debug" ]; then
+if [ "$ENV_STAGE" = "debug" ]; then
     echo "==> Installing DEBUG dependencies..."
     echo "...empty"
 fi

@@ -1,10 +1,10 @@
 USER_ID=$(shell id -u)
 
 DOCKER_COMPOSE = @USER_ID=$(USER_ID) docker compose
-DOCKER_COMPOSE_RUN = ${DOCKER_COMPOSE} run --rm app
+DOCKER_COMPOSE_RUN = ${DOCKER_COMPOSE} run --rm backend ##todo make all of the components installed by this command
 DOCKER_COMPOSE_EXEC = ${DOCKER_COMPOSE} exec
 
-c ?= app
+c ?= backend
 
 %:
 	@:
@@ -22,7 +22,7 @@ router-restart:
 	docker restart router-nginx
 	docker restart router-letsencrypt
 
-install: ## Install dependencies without running the whole application
+install: ## Install dependencies without running the whole application ##todo make all of the components installed by this command
 	${DOCKER_COMPOSE_RUN} composer install
 
 build: ## Build services. Supports service name argument

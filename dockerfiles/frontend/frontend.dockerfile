@@ -6,10 +6,7 @@ WORKDIR /var/www/html
 RUN apk add --no-cache git
 RUN apk add --no-cache bash
 
-COPY node.entrypoint /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-EXPOSE 5173
-
+COPY frontend.entrypoint /frontend.entrypoint
+RUN sed -i 's/\r//' /frontend.entrypoint && chmod +x /frontend.entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "run", "dev"]
