@@ -90,8 +90,8 @@ if "%STORAGE%"=="true" (
 )
 
 :: CLEANING UP PROFILES STRING, DELETING LAST COMMA
-set PROFILES=%profiles:~0,-1%
-
+set PROFILES=%PROFILES:~0,-1%
+echo Profiles: %PROFILES%
 echo "Your project is %PROJECT_NAME%.%PROJECT_DOMAIN%"
 echo "Folder %DESTINATION%\%PROJECT_NAME% will be created"
 pause
@@ -143,8 +143,9 @@ erase data\mysql\.gitkeep
 erase data\postgres\.gitkeep
 
 :: init docker
+set COMPOSE_PROFILES=%PROFILES%
 docker login
-COMPOSE_PROFILES=%PROFILES% docker compose up -d
+docker compose up -d
 
 :: restart main router
 docker restart router-nginx
