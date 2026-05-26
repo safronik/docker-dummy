@@ -35,6 +35,9 @@ if "%ENV_STAGE%"=="debug" set ENV_STAGE_VALID=1
 if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause && exit)
 
 :: BACKEND
+:: defaults
+set XDEBUG_REMOTE_PORT=9020
+
 set /p NEED_BACKEND=Do you need backend? (Y/N):
 if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
 if "%NEED_BACKEND%"=="N" (set BACKEND=false)
@@ -46,6 +49,9 @@ if "%BACKEND%"=="true" (
 )
 
 :: FRONTEND
+:: defaults
+set NODE_EXTERNAL_PORT=5173
+
 set /p NEED_FRONTEND=Do you need frontend? (Y/N):
 if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
 if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
@@ -57,6 +63,7 @@ if "%FRONTEND%"=="true" (
 )
 
 :: STORAGE
+:: defaults
 set DB_DATA_VOLUME=./data/dummy:/var/www})
 
 set /p NEED_STORAGE=Do you need storage? (Y/N):
