@@ -44,7 +44,7 @@ services:
         extra_hosts:
             host.docker.internal: host-gateway
 
-    +frontend:
+    frontend:
       env_file:
         - path: .env.${ENV_STAGE:-dev}
           required: false
