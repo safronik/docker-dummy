@@ -55,6 +55,8 @@ if "%FRONTEND%"=="true" (
 )
 
 :: STORAGE
+set DB_DATA_VOLUME=./data/dummy:/var/www})
+
 set /p NEED_STORAGE=Do you need storage? (Y/N):
 if "%NEED_STORAGE%"=="Y" (set STORAGE=true)
 if "%NEED_STORAGE%"=="N" (set STORAGE=false)
@@ -144,7 +146,7 @@ erase data\postgres\.gitkeep
 
 :: init docker
 set COMPOSE_PROFILES=%PROFILES%
-docker login
+:: docker login
 docker compose up -d
 
 :: restart main router
