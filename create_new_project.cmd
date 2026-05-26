@@ -39,7 +39,9 @@ set /p NEED_BACKEND=Do you need backend? (Y/N):
 if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
 if "%NEED_BACKEND%"=="N" (set BACKEND=false)
 if "%BACKEND%"=="true" (
+
     set PROFILES=backend,
+
     set /p XDEBUG_REMOTE_PORT=XDebug port^(for IDE settings^):
 )
 
@@ -121,6 +123,7 @@ cd .\%PROJECT_NAME%
 powershell -Command "(gc .env) -replace '{PROJECT_NAME}', '%PROJECT_NAME%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .env"
+powershell -Command "(gc .env) -replace '{NODE_EXTERNAL_PORT}', '%NODE_EXTERNAL_PORT%' | Out-File -encoding ASCII .env"
 :: change placeholders for database
 powershell -Command "(gc .env) -replace '{DB_PORT}', '%DB_PORT%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{DB_PASSWORD}', '%PROJECT_NAME%' | Out-File -encoding ASCII .env"
@@ -128,6 +131,7 @@ powershell -Command "(gc .env) -replace '{DB_DOCKERFILE}',    '%DB_DOCKERFILE%' 
 powershell -Command "(gc .env) -replace '{DB_DATA_VOLUME}',   '%DB_DATA_VOLUME%'   | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{DB_PORT_INTERNAL}', '%DB_PORT_INTERNAL%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{DB_COMMAND}',       '%DB_COMMAND%'       | Out-File -encoding ASCII .env"
+
 :: change placeholders in php.ini
 powershell -Command "(gc .\config\php-ini\php.ini) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .\config\php-ini\php.ini"
 :: change placeholders in NGINX configuration
