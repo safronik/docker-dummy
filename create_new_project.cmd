@@ -64,7 +64,11 @@ if "%FRONTEND%"=="true" (
 
 :: STORAGE
 :: defaults
-set DB_DATA_VOLUME=./data/dummy:/var/www})
+set DB_DOCKERFILE=postgres.dockerfile
+set DB_DATA_VOLUME=./data/dummy:/var/www
+set DB_PORT_INTERNAL=5432
+set DB_COMMAND=postgres
+set DB_PORT=5432
 
 set /p NEED_STORAGE=Do you need storage? (Y/N):
 if "%NEED_STORAGE%"=="Y" (set STORAGE=true)
