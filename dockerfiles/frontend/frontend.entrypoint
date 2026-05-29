@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Execute everything under www-data
+if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
+    groupmod -o -g "$HOST_GID" www-data
+    usermod -o -u "$HOST_UID" www-data
+fi
+
 # No frontend installed. Performing installation
 if [ ! -f package.json ]; then
     cd ..

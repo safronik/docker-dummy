@@ -3,6 +3,12 @@
 set -e
 export COMPOSER_NO_INTERACTION=1
 
+# Execute everything under www-data
+if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
+    groupmod -o -g "$HOST_GID" www-data
+    usermod -o -u "$HOST_UID" www-data
+fi
+
 # First run, project is empty
 if [ ! -f composer.json ]; then
     echo "==> Creating Symfony project..."
