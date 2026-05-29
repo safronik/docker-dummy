@@ -146,9 +146,16 @@ powershell -Command "(gc .env) -replace '{DB_COMMAND}',       '%DB_COMMAND%'    
 :: change placeholders in php.ini
 powershell -Command "(gc .\config\php-ini\php.ini) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .\config\php-ini\php.ini"
 :: change placeholders in NGINX configuration
-powershell -Command "(gc dummy.domain_location) -replace '{PROJECT_NAME}', '%PROJECT_NAME%'                            | Out-File -encoding ASCII %PROJECT_NAME%.%PROJECT_DOMAIN%_location"
-powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\site.conf) -replace '{PROJECT_NAME}', '%PROJECT_NAME%'     | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\site.conf"
-powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\site.conf) -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%' | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\site.conf"
+powershell -Command "(gc dummy.domain_location) -replace '{PROJECT_NAME}', '%PROJECT_NAME%'                                   | Out-File -encoding ASCII %PROJECT_NAME%.%PROJECT_DOMAIN%_location"
+powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf)  -replace '{PROJECT_NAME}', '%PROJECT_NAME%'          | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf"
+powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf)  -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%'      | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf"
+powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf) -replace '{PROJECT_NAME}', '%PROJECT_NAME%' | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf"
+if "%BACKEND%"=="false" (
+    erase .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf
+)
+if "%FRONTEND%"=="false" (
+    erase .\config\nginx\vhost.d\%ENV_STAGE%\modules\frontend.conf
+)
 echo "Params copied to files"
 
 :: send file to router vhost dir and clean up
