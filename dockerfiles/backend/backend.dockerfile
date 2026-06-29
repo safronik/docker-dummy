@@ -25,6 +25,17 @@ RUN install-php-extensions @composer
 # RUN php composer require
 # RUN php /app/bin/console
 
+# ----- EMPTY -----
+FROM base AS blank
+ENV ENV_STAGE=blank
+
+RUN composer install
+
+COPY blank.entrypoint /blank.entrypoint
+RUN sed -i 's/\r//' /blank.entrypoint && chmod +x /blank.entrypoint
+ENTRYPOINT ["/blank.entrypoint"]
+CMD ["php-fpm"]
+
 # ----- PROD -----
 FROM base AS prod
 ENV ENV_STAGE=prod

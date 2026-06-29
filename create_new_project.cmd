@@ -28,6 +28,7 @@ set /p DESTINATION=Where to install? (Disk letter is required. for example 'd:\d
 set /p PROJECT_NAME=Enter the project name:
 set /p PROJECT_DOMAIN=Enter the project first level domain:
 set /p ENV_STAGE=Enter the environment stage (dev/prod/test/debug):
+if "%ENV_STAGE%"=="blank" set ENV_STAGE_VALID=1
 if "%ENV_STAGE%"=="dev" set ENV_STAGE_VALID=1
 if "%ENV_STAGE%"=="prod" set ENV_STAGE_VALID=1
 if "%ENV_STAGE%"=="test" set ENV_STAGE_VALID=1
@@ -37,9 +38,9 @@ if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause 
 :: BACKEND
 :: defaults
 set XDEBUG_REMOTE_PORT=9020
+set NEED_BACKEND=true
 
-set /p NEED_BACKEND=Do you need backend? (Y/N):
-if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
+set /p NEED_BACKEND=Do you need backend? (Y - default /N):
 if "%NEED_BACKEND%"=="N" (set BACKEND=false)
 if "%BACKEND%"=="true" (
 
@@ -51,10 +52,10 @@ if "%BACKEND%"=="true" (
 :: FRONTEND
 :: defaults
 set NODE_EXTERNAL_PORT=5173
+set NEED_FRONTEND=false
 
-set /p NEED_FRONTEND=Do you need frontend? (Y/N):
+set /p NEED_FRONTEND=Do you need frontend? (Y/N - default):
 if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
-if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
 if "%FRONTEND%"=="true" (
 
     set PROFILES=%PROFILES%frontend,
