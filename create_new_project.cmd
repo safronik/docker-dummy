@@ -27,7 +27,7 @@ set PROFILES=
 set /p DESTINATION=Where to install? (Disk letter is required. for example 'd:\docker'):
 set /p PROJECT_NAME=Enter the project name:
 set /p PROJECT_DOMAIN=Enter the project first level domain:
-set /p ENV_STAGE=Enter the environment stage (dev/prod/test/debug):
+set /p ENV_STAGE=Enter the environment stage (blank/dev/prod/test/debug):
 if "%ENV_STAGE%"=="blank" set ENV_STAGE_VALID=1
 if "%ENV_STAGE%"=="dev" set ENV_STAGE_VALID=1
 if "%ENV_STAGE%"=="prod" set ENV_STAGE_VALID=1
@@ -38,9 +38,9 @@ if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause 
 :: BACKEND
 :: defaults
 set XDEBUG_REMOTE_PORT=9020
-set NEED_BACKEND=true
 
-set /p NEED_BACKEND=Do you need backend? (Y - default /N):
+set /p NEED_BACKEND=Do you need backend? (Y/N):
+if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
 if "%NEED_BACKEND%"=="N" (set BACKEND=false)
 if "%BACKEND%"=="true" (
 
@@ -52,10 +52,10 @@ if "%BACKEND%"=="true" (
 :: FRONTEND
 :: defaults
 set NODE_EXTERNAL_PORT=5173
-set NEED_FRONTEND=false
 
-set /p NEED_FRONTEND=Do you need frontend? (Y/N - default):
+set /p NEED_FRONTEND=Do you need frontend? (Y/N):
 if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
+if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
 if "%FRONTEND%"=="true" (
 
     set PROFILES=%PROFILES%frontend,
@@ -132,6 +132,7 @@ git clone https://github.com/safronik/docker-dummy.git ./%PROJECT_NAME%
 cd .\%PROJECT_NAME%
 
 :: change placeholders in .env file
+powershell -Command "(gc .env) -replace '{ENV_STAGE}', '%ENV_STAGE%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{PROJECT_NAME}', '%PROJECT_NAME%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%' | Out-File -encoding ASCII .env"
 powershell -Command "(gc .env) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .env"
