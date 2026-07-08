@@ -4,6 +4,9 @@ services:
         env_file:
           - path: .env.${ENV_STAGE:-dev}
             required: false
+        environment:
+              VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
+              VIRTUAL_PORT: 80
         build:
             context: ./dockerfiles/infrastructure
             dockerfile: router.dockerfile
@@ -31,7 +34,6 @@ services:
         image: ${PROJECT_NAME}/backend
         container_name: ${PROJECT_NAME}-backend
         environment:
-            VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
             XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
         working_dir: /var/www/html/backend
