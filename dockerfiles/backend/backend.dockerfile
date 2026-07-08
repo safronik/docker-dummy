@@ -25,11 +25,9 @@ RUN install-php-extensions @composer
 # RUN php composer require
 # RUN php /app/bin/console
 
-# ----- EMPTY -----
+# ----- BLANK -----
 FROM base AS blank
 ENV ENV_STAGE=blank
-
-RUN composer install
 
 COPY blank.entrypoint /blank.entrypoint
 RUN sed -i 's/\r//' /blank.entrypoint && chmod +x /blank.entrypoint
