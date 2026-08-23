@@ -1,202 +1,339 @@
 @echo off
 setlocal enabledelayedexpansion
+title Deploy new web project
 
-:: Check if is admin
-NET SESSION >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo OK! Running under admin.
-) else (
-	echo ######## ########  ########   #######  ########
-	echo ##       ##     ## ##     ## ##     ## ##     ##
-	echo ##       ##     ## ##     ## ##     ## ##     ##
-	echo ######   ########  ########  ##     ## ########
-	echo ##       ##   ##   ##   ##   ##     ## ##   ##
-	echo ##       ##    ##  ##    ##  ##     ## ##    ##
-	echo ######## ##     ## ##     ##  #######  ##     ##
-	echo .
-	echo .
-    echo Please run script under admin, beacuse it will edit the hosts file...
-	pause
-	exit
+::
+:: Развёртывание нового web-проекта (Windows, порт с create_new_project.sh).
+::
+:: Требования: git, Docker Desktop (compose v2), PowerShell 5+, запуск от администратора.
+:: Отладка:    set DEBUG=1 ^&^& create_new_project.cmd
+::
+
+:: --- настройки, которые раньше были зашиты в код ------------------------------
+if not defined REPO_URL    set "REPO_URL=https://github.com/safronik/docker-dummy.git"
+if not defined ROUTER_NAME set "ROUTER_NAME=router-nginx"
+if not defined HOSTS_FILE  set "HOSTS_FILE=%SystemRoot%\System32\drivers\etc\hosts"
+
+set "STEP=initialization"
+set "ERRMSG="
+set "SELF_DELETE="
+
+if "%DEBUG%"=="1" echo on
+
+:: --- проверка прав ------------------------------------------------------------
+set "STEP=admin rights check"
+net session >nul 2>&1
+if errorlevel 1 goto :not_admin
+echo OK! Running under admin.
+goto :check_tools
+
+:not_admin
+echo ######## ########  ########   #######  ########
+echo ##       ##     ## ##     ## ##     ## ##     ##
+echo ##       ##     ## ##     ## ##     ## ##     ##
+echo ######   ########  ########  ##     ## ########
+echo ##       ##   ##   ##   ##   ##     ## ##   ##
+echo ##       ##    ##  ##    ##  ##     ## ##    ##
+echo ######## ##     ## ##     ##  #######  ##     ##
+echo.
+set "ERRMSG=Please run the script as administrator: it edits the hosts file."
+goto :die
+
+:: --- проверка окружения -------------------------------------------------------
+:check_tools
+set "STEP=environment check"
+where git >nul 2>&1        || (set "ERRMSG=git not found in PATH." & goto :die)
+where docker >nul 2>&1     || (set "ERRMSG=docker not found in PATH." & goto :die)
+where powershell >nul 2>&1 || (set "ERRMSG=powershell not found in PATH." & goto :die)
+docker info >nul 2>&1      || (set "ERRMSG=Docker daemon is not responding. Start Docker Desktop and retry." & goto :die)
+
+set "PROFILES="
+
+:: --- GENERAL SETTINGS ---------------------------------------------------------
+set "STEP=user input"
+call :ask DESTINATION    "Where to install? (absolute path, e.g. d:\docker)"
+call :ask PROJECT_NAME   "Enter the project name"
+call :ask PROJECT_DOMAIN "Enter the project first level domain"
+call :ask ENV_STAGE      "Enter the environment stage (blank/dev/prod/test/debug)" "dev"
+
+if not defined DESTINATION    (set "ERRMSG=Destination is empty."    & goto :die)
+if not defined PROJECT_NAME   (set "ERRMSG=Project name is empty."   & goto :die)
+if not defined PROJECT_DOMAIN (set "ERRMSG=Project domain is empty." & goto :die)
+
+:: имя и домен подставляются в файлы и в имя каталога — разрешаем только безопасные символы
+call :validate_name "%PROJECT_NAME%"   "Project name"   || goto :die
+call :validate_name "%PROJECT_DOMAIN%" "Project domain" || goto :die
+
+:: убираем кавычки и хвостовой слэш из пути
+set DESTINATION=%DESTINATION:"=%
+if "%DESTINATION:~-1%"=="\" set "DESTINATION=%DESTINATION:~0,-1%"
+
+if not exist "%DESTINATION%\" mkdir "%DESTINATION%" 2>nul
+if not exist "%DESTINATION%\" (set "ERRMSG=Cannot create or access the destination folder. Check the path and permissions." & goto :die)
+
+:: приводим к абсолютному пути
+pushd "%DESTINATION%" || (set "ERRMSG=Cannot enter the destination folder." & goto :die)
+set "DESTINATION=%CD%"
+popd
+
+set "ENV_STAGE_VALID="
+if /i "%ENV_STAGE%"=="blank" set "ENV_STAGE_VALID=1"
+if /i "%ENV_STAGE%"=="dev"   set "ENV_STAGE_VALID=1"
+if /i "%ENV_STAGE%"=="prod"  set "ENV_STAGE_VALID=1"
+if /i "%ENV_STAGE%"=="test"  set "ENV_STAGE_VALID=1"
+if /i "%ENV_STAGE%"=="debug" set "ENV_STAGE_VALID=1"
+if not defined ENV_STAGE_VALID (set "ERRMSG=Invalid environment stage: %ENV_STAGE%" & goto :die)
+
+set "PROJECT_DIR=%DESTINATION%\%PROJECT_NAME%"
+if exist "%PROJECT_DIR%" (set "ERRMSG=Directory already exists: %PROJECT_DIR%" & goto :die)
+
+set "ROUTER_HOSTS_DIR=%DESTINATION%\router\config\nginx_hosts"
+if not exist "%ROUTER_HOSTS_DIR%\" (set "ERRMSG=Router config dir not found: %ROUTER_HOSTS_DIR% - deploy the router first." & goto :die)
+
+:: --- BACKEND ------------------------------------------------------------------
+set "XDEBUG_REMOTE_PORT=9020"
+call :ask_yn BACKEND "Do you need backend?"
+if "%BACKEND%"=="true" call :ask XDEBUG_REMOTE_PORT "XDebug port (for IDE settings)" "%XDEBUG_REMOTE_PORT%"
+if "%BACKEND%"=="true" set "PROFILES=%PROFILES%backend,"
+call :validate_port "%XDEBUG_REMOTE_PORT%" "XDebug port" || goto :die
+
+:: --- FRONTEND -----------------------------------------------------------------
+set "NODE_EXTERNAL_PORT=5173"
+call :ask_yn FRONTEND "Do you need frontend?"
+if "%FRONTEND%"=="true" call :ask NODE_EXTERNAL_PORT "Node container external port" "%NODE_EXTERNAL_PORT%"
+if "%FRONTEND%"=="true" set "PROFILES=%PROFILES%frontend,"
+call :validate_port "%NODE_EXTERNAL_PORT%" "Node port" || goto :die
+
+:: --- STORAGE ------------------------------------------------------------------
+set "DB_DOCKERFILE=postgres.dockerfile"
+set "DB_DATA_VOLUME=./data/postgres:/var/lib/postgresql/data/pgdata"
+set "DB_PORT_INTERNAL=5432"
+set "DB_COMMAND=postgres"
+set "DB_PORT=5432"
+
+call :ask_yn STORAGE "Do you need storage?"
+if not "%STORAGE%"=="true" goto :after_storage
+
+set "PROFILES=%PROFILES%storage,"
+echo Choose database:
+echo   1 - PostgreSQL (default)
+echo   2 - MariaDB
+call :ask DB_CHOICE "Your choice (1/2)" "1"
+
+if "%DB_CHOICE%"=="2" (
+    set "DB_DOCKERFILE=mariadb.dockerfile"
+    set "DB_DATA_VOLUME=./data/mysql:/var/lib/mysql"
+    set "DB_PORT_INTERNAL=3306"
+    set "DB_COMMAND=mysqld"
+    set "DB_PORT=3306"
 )
+if not "%DB_CHOICE%"=="1" if not "%DB_CHOICE%"=="2" (set "ERRMSG=Invalid database choice: %DB_CHOICE%" & goto :die)
 
-set PROFILES=
+call :ask DB_PORT "Database outer port" "!DB_PORT!"
+call :validate_port "!DB_PORT!" "Database port" || goto :die
 
-:: GENERAL SETTINGS
-:: Install folder
-set /p DESTINATION=Where to install? (Disk letter is required. for example 'd:\docker'):
-set /p PROJECT_NAME=Enter the project name:
-set /p PROJECT_DOMAIN=Enter the project first level domain:
-set /p ENV_STAGE=Enter the environment stage (blank/dev/prod/test/debug):
-if "%ENV_STAGE%"=="blank" set ENV_STAGE_VALID=1
-if "%ENV_STAGE%"=="dev" set ENV_STAGE_VALID=1
-if "%ENV_STAGE%"=="prod" set ENV_STAGE_VALID=1
-if "%ENV_STAGE%"=="test" set ENV_STAGE_VALID=1
-if "%ENV_STAGE%"=="debug" set ENV_STAGE_VALID=1
-if "%ENV_STAGE_VALID%"=="" (echo Invalid environment stage. Exiting... && pause && exit)
+:after_storage
+:: --- сборка строки профилей ---------------------------------------------------
+if defined PROFILES set "PROFILES=%PROFILES:~0,-1%"
 
-:: BACKEND
-:: defaults
-set XDEBUG_REMOTE_PORT=9020
+echo.
+if defined PROFILES     echo Profiles: %PROFILES%
+if not defined PROFILES echo Profiles: none
+echo Your project is %PROJECT_NAME%.%PROJECT_DOMAIN%
+echo Folder %PROJECT_DIR% will be created
+pause
 
-set /p NEED_BACKEND=Do you need backend? (Y/N):
-if "%NEED_BACKEND%"=="Y" (set BACKEND=true)
-if "%NEED_BACKEND%"=="N" (set BACKEND=false)
+:: --- клонирование -------------------------------------------------------------
+set "STEP=git clone %REPO_URL%"
+cd /d "%DESTINATION%" || goto :fail
+git clone "%REPO_URL%" ".\%PROJECT_NAME%" || goto :fail
+cd /d "%PROJECT_DIR%" || goto :fail
+
+:: --- .env ---------------------------------------------------------------------
+set "STEP=patching .env"
+call :subst ".env" "ENV_STAGE"          "%ENV_STAGE%"          || goto :fail
+call :subst ".env" "PROJECT_NAME"       "%PROJECT_NAME%"       || goto :fail
+call :subst ".env" "PROJECT_DOMAIN"     "%PROJECT_DOMAIN%"     || goto :fail
+call :subst ".env" "XDEBUG_REMOTE_PORT" "%XDEBUG_REMOTE_PORT%" || goto :fail
+call :subst ".env" "NODE_EXTERNAL_PORT" "%NODE_EXTERNAL_PORT%" || goto :fail
+call :subst ".env" "DB_PORT"            "%DB_PORT%"            || goto :fail
+call :subst ".env" "DB_PASSWORD"        "%PROJECT_NAME%"       || goto :fail
+call :subst ".env" "DB_DOCKERFILE"      "%DB_DOCKERFILE%"      || goto :fail
+call :subst ".env" "DB_DATA_VOLUME"     "%DB_DATA_VOLUME%"     || goto :fail
+call :subst ".env" "DB_PORT_INTERNAL"   "%DB_PORT_INTERNAL%"   || goto :fail
+call :subst ".env" "DB_COMMAND"         "%DB_COMMAND%"         || goto :fail
+
+:: --- php.ini ------------------------------------------------------------------
+set "STEP=patching php.ini"
+call :subst "config\php-ini\php.ini" "XDEBUG_REMOTE_PORT" "%XDEBUG_REMOTE_PORT%" || goto :fail
+
+:: --- NGINX --------------------------------------------------------------------
+set "STEP=patching nginx configs"
+set "LOCATION_FILE=%PROJECT_NAME%.%PROJECT_DOMAIN%_location"
+set "VHOST_DIR=config\nginx\vhost.d\%ENV_STAGE%"
+
+if not exist "%VHOST_DIR%\" (set "ERRMSG=Vhost dir not found: %VHOST_DIR%" & goto :die)
+
+copy /y "dummy.domain_location" "%LOCATION_FILE%" >nul || goto :fail
+call :subst "%LOCATION_FILE%" "PROJECT_NAME" "%PROJECT_NAME%" || goto :fail
+
+call :subst "%VHOST_DIR%\proxy.conf" "PROJECT_NAME"   "%PROJECT_NAME%"   || goto :fail
+call :subst "%VHOST_DIR%\proxy.conf" "PROJECT_DOMAIN" "%PROJECT_DOMAIN%" || goto :fail
+
 if "%BACKEND%"=="true" (
-
-    set PROFILES=backend,
-
-    set /p XDEBUG_REMOTE_PORT=XDebug port^(for IDE settings^):
+    call :subst "%VHOST_DIR%\modules\backend.conf" "PROJECT_NAME" "%PROJECT_NAME%" || goto :fail
+) else (
+    del /f /q "%VHOST_DIR%\modules\backend.conf" 2>nul
 )
+if not "%FRONTEND%"=="true" del /f /q "%VHOST_DIR%\modules\frontend.conf" 2>nul
 
-:: FRONTEND
-:: defaults
-set NODE_EXTERNAL_PORT=5173
+echo Params copied to files
 
-set /p NEED_FRONTEND=Do you need frontend? (Y/N):
-if "%NEED_FRONTEND%"=="Y" (set FRONTEND=true)
-if "%NEED_FRONTEND%"=="N" (set FRONTEND=false)
-if "%FRONTEND%"=="true" (
-
-    set PROFILES=%PROFILES%frontend,
-
-    set /p NODE_EXTERNAL_PORT=Node container external port:
-)
-
-:: STORAGE
-:: defaults
-set DB_DOCKERFILE=postgres.dockerfile
-set DB_DATA_VOLUME=./data/dummy:/var/www
-set DB_PORT_INTERNAL=5432
-set DB_COMMAND=postgres
-set DB_PORT=5432
-
-set /p NEED_STORAGE=Do you need storage? (Y/N):
-if "%NEED_STORAGE%"=="Y" (set STORAGE=true)
-if "%NEED_STORAGE%"=="N" (set STORAGE=false)
-if "%STORAGE%"=="true" (
-
-    set PROFILES=%PROFILES%storage,
-
-    :: DB choice
-    echo Choose database:
-    echo   1 - PostgreSQL ^(default^)
-    echo   2 - MariaDB
-    set /p DB_CHOICE=Your choice ^(1/2^):
-
-    if "%DB_CHOICE%"=="1" (
-        set DB_DOCKERFILE=postgres.dockerfile
-        set DB_DATA_VOLUME=./data/postgres:/var/lib/postgresql/data/pgdata
-        set DB_PORT_INTERNAL=5432
-        set DB_COMMAND=postgres
-        set DB_PORT=5432
-    )
-    if "%DB_CHOICE%"=="2" (
-        set DB_DOCKERFILE=mariadb.dockerfile
-        set DB_DATA_VOLUME=./data/mysql:/var/lib/mysql
-        set DB_PORT_INTERNAL=3306
-        set DB_COMMAND=mysqld
-        set DB_PORT=3306
-    )
-    set /p DB_PORT=Database outer port [!DB_PORT!]:
-    if "!DB_PORT!"=="" (
-        if "%DB_CHOICE%"=="1" (set DB_PORT=5432)
-        if "%DB_CHOICE%"=="2" (set DB_PORT=3306)
-    )
-)
-
-:: CLEANING UP PROFILES STRING, DELETING LAST COMMA
-set PROFILES=%PROFILES:~0,-1%
-echo Profiles: %PROFILES%
-echo "Your project is %PROJECT_NAME%.%PROJECT_DOMAIN%"
-echo "Folder %DESTINATION%\%PROJECT_NAME% will be created"
+:: --- отдаём конфиг роутеру ----------------------------------------------------
+set "STEP=copying config to router"
+copy /y "%LOCATION_FILE%" "%ROUTER_HOSTS_DIR%\%LOCATION_FILE%" >nul || goto :fail
+echo Nginx config created and copied to router
 pause
 
-:: Install and run main router
-REM docker ps -a -q -f name="router"
-REM {
-	:: cloning repo
-	REM git clone https://github.com/safronik/docker-router.git ./router
-	REM cd ./router
-	REM docker compose up -d
-	REM cd ..
-REM }
-:: Start container
-REM docker container start router-nginx
+del /f /q "data\mysql\.gitkeep"    2>nul
+del /f /q "data\postgres\.gitkeep" 2>nul
 
-:: get into destination directory
-cd /d %DESTINATION%
-:: cloning repo
-git clone https://github.com/safronik/docker-dummy.git ./%PROJECT_NAME%
-:: get into project directory
-cd .\%PROJECT_NAME%
+:: --- docker -------------------------------------------------------------------
+set "STEP=docker compose up"
+set "COMPOSE_PROFILES=%PROFILES%"
+docker compose up -d || goto :fail
 
-:: change placeholders in .env file
-powershell -Command "(gc .env) -replace '{ENV_STAGE}', '%ENV_STAGE%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{PROJECT_NAME}', '%PROJECT_NAME%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{NODE_EXTERNAL_PORT}', '%NODE_EXTERNAL_PORT%' | Out-File -encoding ASCII .env"
-:: change placeholders for database
-powershell -Command "(gc .env) -replace '{DB_PORT}', '%DB_PORT%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{DB_PASSWORD}', '%PROJECT_NAME%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{DB_DOCKERFILE}',    '%DB_DOCKERFILE%'    | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{DB_DATA_VOLUME}',   '%DB_DATA_VOLUME%'   | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{DB_PORT_INTERNAL}', '%DB_PORT_INTERNAL%' | Out-File -encoding ASCII .env"
-powershell -Command "(gc .env) -replace '{DB_COMMAND}',       '%DB_COMMAND%'       | Out-File -encoding ASCII .env"
+set "STEP=restarting %ROUTER_NAME%"
+docker restart "%ROUTER_NAME%" >nul || goto :fail
+echo Main router restarted
+pause
 
-:: change placeholders in php.ini
-powershell -Command "(gc .\config\php-ini\php.ini) -replace '{XDEBUG_REMOTE_PORT}', '%XDEBUG_REMOTE_PORT%' | Out-File -encoding ASCII .\config\php-ini\php.ini"
-:: change placeholders in NGINX configuration
-powershell -Command "(gc dummy.domain_location) -replace '{PROJECT_NAME}', '%PROJECT_NAME%'                                   | Out-File -encoding ASCII %PROJECT_NAME%.%PROJECT_DOMAIN%_location"
-powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf)  -replace '{PROJECT_NAME}', '%PROJECT_NAME%'          | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf"
-powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf)  -replace '{PROJECT_DOMAIN}', '%PROJECT_DOMAIN%'      | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\proxy.conf"
-powershell -Command "(gc .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf) -replace '{PROJECT_NAME}', '%PROJECT_NAME%' | Out-File -encoding ASCII .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf"
-if "%BACKEND%"=="false" (
-    erase .\config\nginx\vhost.d\%ENV_STAGE%\modules\backend.conf
+:: --- hosts --------------------------------------------------------------------
+set "STEP=updating hosts file"
+call :add_host "%PROJECT_NAME%.%PROJECT_DOMAIN%" || goto :fail
+pause
+
+:: --- уборка -------------------------------------------------------------------
+set "STEP=cleanup"
+cd /d "%PROJECT_DIR%" || goto :fail
+del /f /q ".gitignore"             2>nul
+del /f /q "dummy.domain_location"  2>nul
+del /f /q "%LOCATION_FILE%"        2>nul
+del /f /q "create_new_project.sh"  2>nul
+if exist ".git\" attrib -r -h -s /s /d ".git\*" >nul 2>&1
+if exist ".git\" rd /s /q ".git"
+
+:: сам себя батник удалить не может, пока выполняется — делаем это последней командой
+if /i "%~f0"=="%PROJECT_DIR%\create_new_project.cmd" (set "SELF_DELETE=1") else (del /f /q "create_new_project.cmd" 2>nul)
+
+echo Cleaned up
+pause
+if not defined SELF_DELETE goto :done
+endlocal
+(goto) 2>nul & del /f /q "%~f0"
+
+:done
+endlocal
+exit /b 0
+
+:: ============================ ПОДПРОГРАММЫ ====================================
+
+:: ask VAR "prompt" ["default"] — set /p с поддержкой значения по умолчанию
+:ask
+set "__var=%~1"
+set "__prompt=%~2"
+set "__def=%~3"
+set "__val="
+if not defined __def goto :ask_nodef
+set /p "__val=!__prompt! [!__def!]: "
+goto :ask_done
+:ask_nodef
+set /p "__val=!__prompt!: "
+:ask_done
+if not defined __val set "__val=!__def!"
+set "!__var!=!__val!"
+exit /b 0
+
+:: ask_yn VAR "prompt" — цикл до получения y/n, результат true/false
+:ask_yn
+set "__var=%~1"
+set "__prompt=%~2"
+:ask_yn_loop
+set "__a="
+set /p "__a=!__prompt! (y/n): "
+if /i "!__a!"=="y"   goto :ask_yn_yes
+if /i "!__a!"=="yes" goto :ask_yn_yes
+if /i "!__a!"=="n"   goto :ask_yn_no
+if /i "!__a!"=="no"  goto :ask_yn_no
+echo Enter 'y' or 'n'.
+goto :ask_yn_loop
+:ask_yn_yes
+set "!__var!=true"
+exit /b 0
+:ask_yn_no
+set "!__var!=false"
+exit /b 0
+
+:: validate_name "value" "label" — только A-Z a-z 0-9 . _ -
+:validate_name
+echo(%~1| findstr /r /c:"^[A-Za-z0-9._-][A-Za-z0-9._-]*$" >nul
+if errorlevel 1 (
+    set "ERRMSG=%~2 contains invalid characters. Allowed: A-Z a-z 0-9 . _ -"
+    exit /b 1
 )
-if "%FRONTEND%"=="false" (
-    erase .\config\nginx\vhost.d\%ENV_STAGE%\modules\frontend.conf
+exit /b 0
+
+:: validate_port "value" "label"
+:validate_port
+echo(%~1| findstr /r /c:"^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+    set "ERRMSG=%~2 must be a number: %~1"
+    exit /b 1
 )
-echo "Params copied to files"
+exit /b 0
 
-:: send file to router vhost dir and clean up
-copy .\%PROJECT_NAME%.%PROJECT_DOMAIN%_location ..\router\config\nginx_hosts\%PROJECT_NAME%.%PROJECT_DOMAIN%_location
-echo "Nginx config created and copied to router"
+:: subst FILE KEY VALUE — литеральная замена {KEY} на VALUE
+:: без изменения кодировки и без превращения LF в CRLF
+:subst
+if not exist "%~1" (
+    echo ERROR: file not found: %~1
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f = (Resolve-Path -LiteralPath '%~1').Path; $t = [IO.File]::ReadAllText($f); $t = $t.Replace('{%~2}', '%~3'); [IO.File]::WriteAllText($f, $t, (New-Object System.Text.UTF8Encoding($false))); exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
+exit /b %ERRORLEVEL%
+
+:: add_host FQDN — добавляет запись, если её ещё нет; не ломает последнюю строку файла
+:add_host
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $h = '%HOSTS_FILE%'; $n = '%~1'; $e = [Text.Encoding]::Default; $t = [IO.File]::ReadAllText($h, $e); $nl = [char]13 + [char]10; if ($t -match ('(?m)^\s*[\d\.]+[^\r\n]*\s' + [regex]::Escape($n) + '(\s|$)')) { Write-Host ('Hosts entry for ' + $n + ' already exists, skipped') } else { if ($t.Length -gt 0 -and $t[$t.Length-1] -ne [char]10) { $t += $nl }; $t += ('127.0.0.1 ' + $n + $nl); [IO.File]::WriteAllText($h, $t, $e); Write-Host 'Hosts updated' }; exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
+exit /b %ERRORLEVEL%
+
+:: ============================ ВЫХОД С ОШИБКОЙ =================================
+
+:: сбой внешней команды — аналог trap ERR
+:fail
+set "CODE=%ERRORLEVEL%"
+if "%CODE%"=="0" set "CODE=1"
+echo.
+echo =============== ERROR ===============
+echo  exit code : %CODE%
+echo  step      : %STEP%
+echo  directory : %CD%
+echo =====================================
+echo.
+echo Script stopped. Read the message above.
 pause
+endlocal
+exit /b %CODE%
 
-erase data\mysql\.gitkeep
-erase data\postgres\.gitkeep
-
-:: init docker
-set COMPOSE_PROFILES=%PROFILES%
-:: docker login
-docker compose up -d
-
-:: restart main router
-docker restart router-nginx
-echo "Main router restarted"
+:: ошибка валидации — аналог die()
+:die
+echo.
+echo =============== ERROR ===============
+echo  %ERRMSG%
+echo  step      : %STEP%
+echo  directory : %CD%
+echo =====================================
+echo.
 pause
-
-:: append hosts file
-C:
-cd \Windows\System32\drivers\etc\
-powershell -Command "Add-Content -Path .\hosts '127.0.0.1 %PROJECT_NAME%.%PROJECT_DOMAIN%'"
-echo "Hosts updated"
-pause
-
-:: Cleaning up
-:: Return to docker folder
-cd /d %DESTINATION%\%PROJECT_NAME%
-:: Clean up
-erase .gitignore
-rd /s/q .git
-:: erase .env
-:: erase docker-compose.yml
-erase dummy.domain_location
-erase create_new_project.cmd
-erase %PROJECT_NAME%.%PROJECT_DOMAIN%_location
-:: rd /s/q dockerfiles
-
-echo "Cleaned up"
-pause
+endlocal
+exit /b 1
