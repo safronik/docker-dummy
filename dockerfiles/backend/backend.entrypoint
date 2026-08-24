@@ -31,34 +31,34 @@ if [ ! -f composer.json ]; then
     # SPA
     composer require nelmio/cors-bundle --no-interaction
     composer require symfony/serializer-pack --no-interaction
-fi
 
-echo "==> Installing composer dependencies..."
-composer install
+    echo "==> Installing composer dependencies..."
+    composer install
 
-# ----- PROD -----
-if [ "$ENV_STAGE" = "prod" ]; then
-    echo "==> Installing PROD dependencies..."
-    echo "...empty"
-fi
+    # ----- PROD -----
+    if [ "$ENV_STAGE" = "prod" ]; then
+        echo "==> Installing PROD dependencies..."
+        echo "...empty"
+    fi
 
-# ----- DEV -----
-if [ "$ENV_STAGE" = "dev" ]; then
-    echo "==> Installing DEV dependencies..."
-    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
-    composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
-fi
+    # ----- DEV -----
+    if [ "$ENV_STAGE" = "dev" ]; then
+        echo "==> Installing DEV dependencies..."
+        echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
+        composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
+    fi
 
-# ----- DEBUG -----
-if [ "$ENV_STAGE" = "test" ]; then
-    echo "==> Installing TEST dependencies..."
-    echo "...empty"
-fi
+    # ----- DEBUG -----
+    if [ "$ENV_STAGE" = "test" ]; then
+        echo "==> Installing TEST dependencies..."
+        echo "...empty"
+    fi
 
-# ----- DEBUG -----
-if [ "$ENV_STAGE" = "debug" ]; then
-    echo "==> Installing DEBUG dependencies..."
-    echo "...empty"
+    # ----- DEBUG -----
+    if [ "$ENV_STAGE" = "debug" ]; then
+        echo "==> Installing DEBUG dependencies..."
+        echo "...empty"
+    fi
 fi
 
 exec "$@"
