@@ -39,7 +39,6 @@ services:
         working_dir: /var/www/html/backend
         volumes:
             - ./code:/var/www/html # code
-            - ./config/php-ini:/usr/local/etc/php # php.ini
             - ./config/php-ini/php.ini:/usr/local/etc/php/conf.d/zz-php.ini:ro
             - ./logs/php:/log/php # logs
         networks:
