@@ -223,6 +223,7 @@ git clone "$REPO_URL" "./$PROJECT_NAME"
 cd "./$PROJECT_NAME"
 
 # --- .env ---------------------------------------------------------------------
+subst .env COMPOSE_PROFILES   "$PROFILES_STR"
 subst .env ENV_STAGE          "$ENV_STAGE"
 subst .env PROJECT_NAME       "$PROJECT_NAME"
 subst .env PROJECT_DOMAIN     "$PROJECT_DOMAIN"

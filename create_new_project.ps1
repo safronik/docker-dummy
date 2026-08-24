@@ -331,6 +331,7 @@ try {
         # --- .env -------------------------------------------------------------
         Set-Step 'подстановка параметров в .env'
         Set-Placeholders -Path '.env' -Map @{
+            COMPOSE_PROFILES   = $profilesString
             ENV_STAGE          = $EnvStage
             PROJECT_NAME       = $ProjectName
             PROJECT_DOMAIN     = $ProjectDomain

@@ -151,6 +151,7 @@ cd /d "%PROJECT_DIR%" || goto :fail
 
 :: --- .env ---------------------------------------------------------------------
 set "STEP=patching .env"
+call :subst ".env" "COMPOSE_PROFILES"   "%PROFILES%"          || goto :fail
 call :subst ".env" "ENV_STAGE"          "%ENV_STAGE%"          || goto :fail
 call :subst ".env" "PROJECT_NAME"       "%PROJECT_NAME%"       || goto :fail
 call :subst ".env" "PROJECT_DOMAIN"     "%PROJECT_DOMAIN%"     || goto :fail
