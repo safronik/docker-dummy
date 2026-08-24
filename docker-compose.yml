@@ -34,8 +34,7 @@ services:
         image: ${PROJECT_NAME}/backend
         container_name: ${PROJECT_NAME}-backend
         environment:
-            XDEBUG_CONFIG: "remote_host=host.docker.internal mode=debug remote_port=${XDEBUG_REMOTE_PORT}"
-            PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}"
+            PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}.${PROJECT_DOMAIN}"
         working_dir: /var/www/html/backend
         volumes:
             - ./code:/var/www/html # code
