@@ -40,8 +40,11 @@ stop: ## Stop services. Supports service name argument
 start: ## Start services. Supports service name argument
 	${DOCKER_COMPOSE} start $(filter-out $@,$(MAKECMDGOALS))
 
-down: ## Stop and remove containers and volumes. Supports service name argument
-	${DOCKER_COMPOSE} down -v $(filter-out $@,$(MAKECMDGOALS))
+down: ## Stop and remove containers. Supports service name argument
+	${DOCKER_COMPOSE} down $(filter-out $@,$(MAKECMDGOALS))
+
+down-hard: ## Stop and remove containers and volumes. Supports service name argument
+	${DOCKER_COMPOSE} down $(filter-out $@,$(MAKECMDGOALS)) --rmi all --volumes --remove-orphans
 
 restart: ## Restart all services or specific service. Supports service name argument
 	${DOCKER_COMPOSE} stop $(filter-out $@,$(MAKECMDGOALS))
