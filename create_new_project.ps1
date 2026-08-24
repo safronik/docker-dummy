@@ -406,6 +406,12 @@ try {
         # --- уборка -----------------------------------------------------------
         Set-Step 'уборка'
         Remove-ItemSafe $locationFile
+
+        # конфиги nginx для неиспользуемых окружений
+        Get-ChildItem -LiteralPath 'config\nginx\vhost.d' -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne $EnvStage } |
+            ForEach-Object { Remove-ItemSafe $_.FullName }
+
         Remove-ItemSafe 'dummy.domain_location'
         if (-not $KeepSources) {
             Remove-ItemSafe '.gitignore'

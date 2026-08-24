@@ -219,6 +219,11 @@ cd /d "%PROJECT_DIR%" || goto :fail
 del /f /q ".gitignore"             2>nul
 del /f /q "dummy.domain_location"  2>nul
 del /f /q "%LOCATION_FILE%"        2>nul
+
+:: конфиги nginx для неиспользуемых окружений
+for /d %%D in ("config\nginx\vhost.d\*") do (
+    if /i not "%%~nxD"=="%ENV_STAGE%" rd /s /q "%%~fD" 2>nul
+)
 del /f /q "create_new_project.sh"  2>nul
 if exist ".git\" attrib -r -h -s /s /d ".git\*" >nul 2>&1
 if exist ".git\" rd /s /q ".git"

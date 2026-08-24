@@ -288,6 +288,14 @@ pause
 
 # --- уборка -------------------------------------------------------------------
 cd "$PROJECT_DIR"
+
+# удаляем конфиги nginx для неиспользуемых окружений
+for vhost in config/nginx/vhost.d/*/; do
+    [[ -d "$vhost" ]] || continue
+    [[ "$(basename "$vhost")" == "$ENV_STAGE" ]] && continue
+    rm -rf "$vhost"
+done
+
 rm -f .gitignore
 rm -rf .git
 rm -f create_new_project.cmd
