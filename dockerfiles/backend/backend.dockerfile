@@ -38,7 +38,6 @@ CMD ["php-fpm"]
 FROM base AS prod
 ENV ENV_STAGE=prod
 
-RUN composer install
 RUN install-php-extensions opcache memcached
 
 COPY backend.entrypoint /backend.entrypoint
