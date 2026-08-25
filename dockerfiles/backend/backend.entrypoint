@@ -9,6 +9,18 @@ if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
     usermod -o -u "$HOST_UID" www-data
 fi
 
+# ----- PROD -----
+if [ "$ENV_STAGE" = "prod" ]; then
+    echo "==> Installing PROD dependencies..."
+    composer install
+fi
+
+# ----- TEST -----
+if [ "$ENV_STAGE" = "test" ]; then
+    echo "==> Installing TEST dependencies..."
+    composer install
+fi
+
 # First run, project is empty
 if [ ! -f composer.json ]; then
     echo "==> Creating Symfony project..."
@@ -34,31 +46,13 @@ if [ ! -f composer.json ]; then
 
     echo "==> Installing composer dependencies..."
     composer install
+fi
 
-    # ----- PROD -----
-    if [ "$ENV_STAGE" = "prod" ]; then
-        echo "==> Installing PROD dependencies..."
-        echo "...empty"
-    fi
-
-    # ----- DEV -----
-    if [ "$ENV_STAGE" = "dev" ]; then
-        echo "==> Installing DEV dependencies..."
-        echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
-        composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
-    fi
-
-    # ----- DEBUG -----
-    if [ "$ENV_STAGE" = "test" ]; then
-        echo "==> Installing TEST dependencies..."
-        echo "...empty"
-    fi
-
-    # ----- DEBUG -----
-    if [ "$ENV_STAGE" = "debug" ]; then
-        echo "==> Installing DEBUG dependencies..."
-        echo "...empty"
-    fi
+# ----- DEV -----
+if [ "$ENV_STAGE" = "dev" ]; then
+    echo "==> Installing DEV dependencies..."
+    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
+    composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
 fi
 
 exec "$@"
