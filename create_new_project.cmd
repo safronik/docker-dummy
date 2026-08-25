@@ -225,10 +225,11 @@ del /f /q "%LOCATION_FILE%"        2>nul
 for /d %%D in ("config\nginx\vhost.d\*") do (
     if /i not "%%~nxD"=="%ENV_STAGE%" rd /s /q "%%~fD" 2>nul
 )
-del /f /q "create_new_project.sh"  2>nul
 if exist ".git\" attrib -r -h -s /s /d ".git\*" >nul 2>&1
 if exist ".git\" rd /s /q ".git"
 
+del /f /q "create_new_project.sh"  2>nul
+del /f /q "create_new_project.ps1"  2>nul
 :: сам себя батник удалить не может, пока выполняется — делаем это последней командой
 if /i "%~f0"=="%PROJECT_DIR%\create_new_project.cmd" (set "SELF_DELETE=1") else (del /f /q "create_new_project.cmd" 2>nul)
 

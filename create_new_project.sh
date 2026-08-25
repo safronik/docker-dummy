@@ -301,6 +301,7 @@ rm -f .gitignore
 rm -rf .git
 rm -f create_new_project.cmd
 rm -f create_new_project.sh
+rm -f create_new_project.ps1
 rm -f "$LOCATION_FILE"
 
 echo "Cleaned up"
