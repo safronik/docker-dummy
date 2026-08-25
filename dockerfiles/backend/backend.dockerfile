@@ -21,10 +21,6 @@ RUN install-php-extensions pdo_pgsql
 RUN install-php-extensions pdo_sqlite
 RUN install-php-extensions @composer
 
-# Composer
-# RUN php composer require
-# RUN php /app/bin/console
-
 # ----- BLANK -----
 FROM base AS blank
 ENV ENV_STAGE=blank
