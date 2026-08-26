@@ -1,0 +1,11 @@
+# Стадийное дополнение к docker-compose.yml для окружения blank.
+# Устанавливается как docker-compose.override.yml — см. deploy.sh / deploy.ps1 / deploy.cmd
+services:
+
+    frontend:
+        ports:
+            - "127.0.0.1:${NODE_EXTERNAL_PORT}:5173"
+
+    storage:
+        ports:
+            - "127.0.0.1:${DB_PORT}:${DB_PORT_INTERNAL}"

@@ -198,6 +198,13 @@ pause
 del /f /q "data\mysql\.gitkeep"    2>nul
 del /f /q "data\postgres\.gitkeep" 2>nul
 
+:: --- compose override ---------------------------------------------------------
+set "STEP=selecting compose override"
+if exist "docker-compose.%ENV_STAGE%.yml" (
+    copy /y "docker-compose.%ENV_STAGE%.yml" "docker-compose.override.yml" >nul || goto :fail
+    echo Compose override for '%ENV_STAGE%' applied
+)
+
 :: --- docker -------------------------------------------------------------------
 set "STEP=docker compose up"
 set "COMPOSE_PROFILES=%PROFILES%"
@@ -224,6 +231,12 @@ del /f /q "%LOCATION_FILE%"        2>nul
 for /d %%D in ("config\nginx\vhost.d\*") do (
     if /i not "%%~nxD"=="%ENV_STAGE%" rd /s /q "%%~fD" 2>nul
 )
+:: стадийные заготовки compose, остаётся только применённый override
+del /f /q "docker-compose.blank.yml" 2>nul
+del /f /q "docker-compose.dev.yml"   2>nul
+del /f /q "docker-compose.prod.yml"  2>nul
+del /f /q "docker-compose.test.yml"  2>nul
+
 if exist ".git\" attrib -r -h -s /s /d ".git\*" >nul 2>&1
 if exist ".git\" rd /s /q ".git"
 

@@ -389,6 +389,14 @@ try {
         Remove-ItemSafe 'data\mysql\.gitkeep'
         Remove-ItemSafe 'data\postgres\.gitkeep'
 
+        # --- compose override -------------------------------------------------
+        Set-Step 'выбор compose-файла для окружения'
+        $stageCompose = "docker-compose.$EnvStage.yml"
+        if (Test-Path -LiteralPath $stageCompose -PathType Leaf) {
+            Copy-Item -LiteralPath $stageCompose -Destination 'docker-compose.override.yml' -Force
+            Write-Host "Compose override for '$EnvStage' applied"
+        }
+
         # --- docker -----------------------------------------------------------
         Set-Step 'docker compose up'
         $env:COMPOSE_PROFILES = $profilesString
@@ -412,6 +420,11 @@ try {
         Get-ChildItem -LiteralPath 'config\nginx\vhost.d' -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -ne $EnvStage } |
             ForEach-Object { Remove-ItemSafe $_.FullName }
+
+        # стадийные заготовки compose, остаётся только применённый override
+        foreach ($stage in @('blank', 'dev', 'prod', 'test')) {
+            Remove-ItemSafe "docker-compose.$stage.yml"
+        }
 
         Remove-ItemSafe 'dummy.domain_location'
         if (-not $KeepSources) {

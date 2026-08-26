@@ -58,8 +58,6 @@ services:
       working_dir: /var/www/html/frontend
       volumes:
           - ./code:/var/www/html
-      ports:
-          - "${NODE_EXTERNAL_PORT}:5173"
       environment:
           __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${PROJECT_NAME}.${PROJECT_DOMAIN}
       networks:
@@ -88,8 +86,6 @@ services:
             MARIADB_USER: ${PROJECT_NAME}
             MARIADB_PASSWORD: ${PROJECT_NAME}
             MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
-        ports:
-            - "${DB_PORT}:${DB_PORT_INTERNAL}"
         command: ${DB_COMMAND}
         restart: unless-stopped
         networks:

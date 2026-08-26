@@ -269,6 +269,12 @@ pause
 
 rm -f data/mysql/.gitkeep data/postgres/.gitkeep
 
+# --- compose override ---------------------------------------------------------
+if [[ -f "docker-compose.$ENV_STAGE.yml" ]]; then
+    cp "docker-compose.$ENV_STAGE.yml" docker-compose.override.yml
+    echo "Compose override for '$ENV_STAGE' applied"
+fi
+
 # --- docker -------------------------------------------------------------------
 export COMPOSE_PROFILES="$PROFILES_STR"
 docker compose up -d
@@ -296,6 +302,9 @@ for vhost in config/nginx/vhost.d/*/; do
     [[ "$(basename "$vhost")" == "$ENV_STAGE" ]] && continue
     rm -rf "$vhost"
 done
+
+# удаляем стадийные заготовки compose, остаётся только применённый override
+rm -f docker-compose.{blank,dev,prod,test}.yml
 
 rm -f .gitignore
 rm -rf .git

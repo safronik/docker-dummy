@@ -5,6 +5,7 @@
 /.env
 /.env.dev
 /.env.prod
+/docker-compose.override.yml
 /CLAUDE.md
 logs
 
