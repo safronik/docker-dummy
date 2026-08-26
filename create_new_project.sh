@@ -127,7 +127,7 @@ PROFILES=()
 ask DESTINATION  "Where to install? (absolute path, e.g. '/home/user/docker')"
 ask PROJECT_NAME "Enter the project name"
 ask PROJECT_DOMAIN "Enter the project first level domain"
-ask ENV_STAGE    "Enter the environment stage (blank/dev/prod/test/debug)"
+ask ENV_STAGE    "Enter the environment stage (blank/dev/prod/test)"
 
 [[ -n "$DESTINATION"    ]] || die "Destination is empty."
 [[ -n "$PROJECT_NAME"   ]] || die "Project name is empty."
@@ -147,7 +147,7 @@ fi
 DESTINATION="$(cd "$DESTINATION" && pwd)"               # приводим к абсолютному пути
 
 case "$ENV_STAGE" in
-    blank|dev|prod|test|debug) ;;
+    blank|dev|prod|test) ;;
     *) die "Invalid environment stage: '$ENV_STAGE'" ;;
 esac
 

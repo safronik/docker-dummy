@@ -54,7 +54,7 @@ set "STEP=user input"
 call :ask DESTINATION    "Where to install? (absolute path, e.g. d:\docker)"
 call :ask PROJECT_NAME   "Enter the project name"
 call :ask PROJECT_DOMAIN "Enter the project first level domain"
-call :ask ENV_STAGE      "Enter the environment stage (blank/dev/prod/test/debug)" "dev"
+call :ask ENV_STAGE      "Enter the environment stage (blank/dev/prod/test)" "dev"
 
 if not defined DESTINATION    (set "ERRMSG=Destination is empty."    & goto :die)
 if not defined PROJECT_NAME   (set "ERRMSG=Project name is empty."   & goto :die)
@@ -81,7 +81,6 @@ if /i "%ENV_STAGE%"=="blank" set "ENV_STAGE_VALID=1"
 if /i "%ENV_STAGE%"=="dev"   set "ENV_STAGE_VALID=1"
 if /i "%ENV_STAGE%"=="prod"  set "ENV_STAGE_VALID=1"
 if /i "%ENV_STAGE%"=="test"  set "ENV_STAGE_VALID=1"
-if /i "%ENV_STAGE%"=="debug" set "ENV_STAGE_VALID=1"
 if not defined ENV_STAGE_VALID (set "ERRMSG=Invalid environment stage: %ENV_STAGE%" & goto :die)
 
 set "PROJECT_DIR=%DESTINATION%\%PROJECT_NAME%"

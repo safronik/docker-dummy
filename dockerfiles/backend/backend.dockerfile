@@ -61,18 +61,3 @@ COPY backend.entrypoint /backend.entrypoint
 RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
 ENTRYPOINT ["/backend.entrypoint"]
 CMD ["php-fpm"]
-
-# ----- DEBUG -----
-FROM base AS debug
-ENV ENV_STAGE=debug
-
-# Utils
-RUN apt update && apt install -y mc
-
-# Network utils
-RUN apt update && apt install -y iproute2 iputils-ping lsof
-
-COPY backend.entrypoint /backend.entrypoint
-RUN sed -i 's/\r//' /backend.entrypoint && chmod +x /backend.entrypoint
-ENTRYPOINT ["/backend.entrypoint"]
-CMD ["php-fpm"]

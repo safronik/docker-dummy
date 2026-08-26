@@ -25,7 +25,7 @@ param(
     [string] $ProjectName,
     [string] $ProjectDomain,
 
-    [ValidateSet('blank', 'dev', 'prod', 'test', 'debug')]
+    [ValidateSet('blank', 'dev', 'prod', 'test')]
     [string] $EnvStage,
 
     [switch] $Backend,
@@ -229,8 +229,8 @@ try {
             -PatternMessage 'Допустимы только A-Z a-z 0-9 . _ -'
     }
     if (-not $EnvStage) {
-        $EnvStage = Read-Value -Prompt 'Окружение (blank/dev/prod/test/debug)' -Default 'dev' `
-            -Pattern '^(blank|dev|prod|test|debug)$' -PatternMessage 'Недопустимое окружение.'
+        $EnvStage = Read-Value -Prompt 'Окружение (blank/dev/prod/test)' -Default 'dev' `
+            -Pattern '^(blank|dev|prod|test)$' -PatternMessage 'Недопустимое окружение.'
     }
 
     # имя и домен попадают в имя каталога и в конфиги — проверяем даже то, что пришло параметром
