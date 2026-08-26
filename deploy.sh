@@ -307,6 +307,9 @@ done
 rm -f docker-compose.{blank,dev,prod,test}.yml
 
 rm -f .gitignore
+rm -f .gitattributes
+rm -f .editorconfig
+rm -rf .github
 rm -rf .git
 rm -f create_new_project.cmd
 rm -f create_new_project.sh

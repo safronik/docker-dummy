@@ -224,6 +224,9 @@ pause
 set "STEP=cleanup"
 cd /d "%PROJECT_DIR%" || goto :fail
 del /f /q ".gitignore"             2>nul
+del /f /q ".gitattributes"         2>nul
+del /f /q ".editorconfig"          2>nul
+if exist ".github\" rd /s /q ".github"
 del /f /q "dummy.domain_location"  2>nul
 del /f /q "%LOCATION_FILE%"        2>nul
 

@@ -429,6 +429,9 @@ try {
         Remove-ItemSafe 'dummy.domain_location'
         if (-not $KeepSources) {
             Remove-ItemSafe '.gitignore'
+            Remove-ItemSafe '.gitattributes'
+            Remove-ItemSafe '.editorconfig'
+            Remove-ItemSafe '.github'
             Remove-ItemSafe '.git'
             Remove-ItemSafe 'create_new_project.cmd'
             Remove-ItemSafe 'create_new_project.sh'
