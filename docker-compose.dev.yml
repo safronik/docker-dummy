@@ -1,11 +1,15 @@
 # Стадийное дополнение к docker-compose.yml для окружения dev.
 # Устанавливается как docker-compose.override.yml — см. deploy.sh / deploy.ps1 / deploy.cmd
+# Две записи на порт — петля IPv4 и IPv6: имя localhost на многих системах
+# резолвится сначала в ::1, публикация только на 127.0.0.1 оставляла бы его без слушателя.
 services:
 
     frontend:
         ports:
             - "127.0.0.1:${NODE_EXTERNAL_PORT}:5173"
+            - "[::1]:${NODE_EXTERNAL_PORT}:5173"
 
     storage:
         ports:
             - "127.0.0.1:${DB_PORT}:${DB_PORT_INTERNAL}"
+            - "[::1]:${DB_PORT}:${DB_PORT_INTERNAL}"
