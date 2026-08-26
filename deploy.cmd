@@ -109,6 +109,8 @@ set "DB_DATA_VOLUME=./data/postgres:/var/lib/postgresql/data/pgdata"
 set "DB_PORT_INTERNAL=5432"
 set "DB_COMMAND=postgres"
 set "DB_PORT=5432"
+set "DB_SCHEME=postgresql"
+set "DB_CHARSET=utf8"
 
 call :ask_yn STORAGE "Do you need storage?"
 if not "%STORAGE%"=="true" goto :after_storage
@@ -125,6 +127,8 @@ if "%DB_CHOICE%"=="2" (
     set "DB_PORT_INTERNAL=3306"
     set "DB_COMMAND=mysqld"
     set "DB_PORT=3306"
+    set "DB_SCHEME=mysql"
+    set "DB_CHARSET=utf8mb4"
 )
 if not "%DB_CHOICE%"=="1" if not "%DB_CHOICE%"=="2" (set "ERRMSG=Invalid database choice: %DB_CHOICE%" & goto :die)
 
@@ -157,11 +161,20 @@ call :subst ".env" "PROJECT_DOMAIN"     "%PROJECT_DOMAIN%"     || goto :fail
 call :subst ".env" "XDEBUG_REMOTE_PORT" "%XDEBUG_REMOTE_PORT%" || goto :fail
 call :subst ".env" "NODE_EXTERNAL_PORT" "%NODE_EXTERNAL_PORT%" || goto :fail
 call :subst ".env" "DB_PORT"            "%DB_PORT%"            || goto :fail
-call :subst ".env" "DB_PASSWORD"        "%PROJECT_NAME%"       || goto :fail
+call :gen_password DB_PASSWORD || goto :die
+call :subst ".env" "DB_PASSWORD"        "!DB_PASSWORD!"        || goto :fail
 call :subst ".env" "DB_DOCKERFILE"      "%DB_DOCKERFILE%"      || goto :fail
 call :subst ".env" "DB_DATA_VOLUME"     "%DB_DATA_VOLUME%"     || goto :fail
 call :subst ".env" "DB_PORT_INTERNAL"   "%DB_PORT_INTERNAL%"   || goto :fail
 call :subst ".env" "DB_COMMAND"         "%DB_COMMAND%"         || goto :fail
+call :subst ".env" "DB_SCHEME"          "%DB_SCHEME%"          || goto :fail
+call :subst ".env" "DB_CHARSET"         "%DB_CHARSET%"         || goto :fail
+
+:: страховка от забытых плейсхолдеров
+findstr /r /c:"{[A-Z_][A-Z_]*}" ".env" >nul && (
+    set "ERRMSG=.env contains unresolved placeholders."
+    goto :die
+)
 
 :: --- php.ini ------------------------------------------------------------------
 set "STEP=patching php.ini"
@@ -243,10 +256,10 @@ del /f /q "docker-compose.test.yml"  2>nul
 if exist ".git\" attrib -r -h -s /s /d ".git\*" >nul 2>&1
 if exist ".git\" rd /s /q ".git"
 
-del /f /q "create_new_project.sh"  2>nul
-del /f /q "create_new_project.ps1"  2>nul
+del /f /q "deploy.sh"  2>nul
+del /f /q "deploy.ps1" 2>nul
 :: сам себя батник удалить не может, пока выполняется — делаем это последней командой
-if /i "%~f0"=="%PROJECT_DIR%\create_new_project.cmd" (set "SELF_DELETE=1") else (del /f /q "create_new_project.cmd" 2>nul)
+if /i "%~f0"=="%PROJECT_DIR%\deploy.cmd" (set "SELF_DELETE=1") else (del /f /q "deploy.cmd" 2>nul)
 
 echo Cleaned up
 pause
@@ -323,6 +336,26 @@ if not exist "%~1" (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $f = (Resolve-Path -LiteralPath '%~1').Path; $t = [IO.File]::ReadAllText($f); $t = $t.Replace('{%~2}', '%~3'); [IO.File]::WriteAllText($f, $t, (New-Object System.Text.UTF8Encoding($false))); exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
 exit /b %ERRORLEVEL%
+
+:: gen_password VAR — записывает в VAR случайный пароль из 32 символов [A-Za-z0-9]
+::
+:: В PowerShell-строке намеренно нет ни одного знака '%': она проходит две стадии
+:: разбора cmd (сам батник и cmd /c, который порождает for /f), и правила схлопывания
+:: %% на них разные. Поэтому вместо остатка от деления ($b[0] % 62) байты >= 62
+:: отбрасываются — заодно уходит смещение распределения, которое давал бы остаток.
+::
+:: $ErrorActionPreference='Stop' + try/catch обязательны: без них отказ Create()
+:: оставил бы $rng пустым, вызов метода у $null был бы нефатальной ошибкой,
+:: а while($s.Length -lt 32) завис бы навсегда.
+:gen_password
+set "__pwd="
+for /f "usebackq delims=" %%P in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; try { $a='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; $rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 1; $s=''; while($s.Length -lt 32){ $rng.GetBytes($b); if($b[0] -lt $a.Length){ $s+=$a[$b[0]] } }; $rng.Dispose(); Write-Output $s; exit 0 } catch { exit 1 }"`) do set "__pwd=%%P"
+if not defined __pwd (
+    set "ERRMSG=Failed to generate DB password."
+    exit /b 1
+)
+set "%~1=!__pwd!"
+exit /b 0
 
 :: add_host FQDN — добавляет запись, если её ещё нет; не ломает последнюю строку файла
 :add_host
