@@ -148,6 +148,31 @@ function Set-Placeholders {
     [IO.File]::WriteAllText($full, $text, $script:Utf8NoBom)
 }
 
+# Криптостойкий пароль из [A-Za-z0-9].
+# Алфавит ограничен намеренно: значение попадает в DATABASE_URL, где '+', '/', '=' и '@'
+# ломают разбор URL, а '$' съедается интерполяцией переменных в .env.
+function New-DbPassword {
+    param([int] $Length = 32)
+
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $builder = New-Object System.Text.StringBuilder
+        $buffer  = New-Object byte[] 1
+        while ($builder.Length -lt $Length) {
+            $rng.GetBytes($buffer)
+            # байты вне длины алфавита отбрасываем: взятие остатка дало бы смещение
+            if ($buffer[0] -ge $alphabet.Length) { continue }
+            [void]$builder.Append($alphabet[$buffer[0]])
+        }
+        return $builder.ToString()
+    }
+    finally {
+        $rng.Dispose()
+    }
+}
+
 function Add-HostsEntry {
     param([Parameter(Mandatory)][string] $Fqdn, [Parameter(Mandatory)][string] $Path)
 
@@ -295,6 +320,8 @@ try {
     $dbPortInternal = 5432
     $dbCommand      = 'postgres'
     $dbDefaultPort  = 5432
+    $dbScheme       = 'postgresql'
+    $dbCharset      = 'utf8'
 
     if ($Database -eq 'mariadb') {
         $dbDockerfile   = 'mariadb.dockerfile'
@@ -302,6 +329,8 @@ try {
         $dbPortInternal = 3306
         $dbCommand      = 'mysqld'
         $dbDefaultPort  = 3306
+        $dbScheme       = 'mysql'
+        $dbCharset      = 'utf8mb4'
     }
 
     if ($Database -ne 'none') {
@@ -330,6 +359,12 @@ try {
     try {
         # --- .env -------------------------------------------------------------
         Set-Step 'подстановка параметров в .env'
+
+        # пароль не должен попасть в транскрипт при -Trace
+        if ($Trace) { Set-PSDebug -Off }
+        $dbPassword = New-DbPassword -Length 32
+        if ($Trace) { Set-PSDebug -Trace 1 }
+
         Set-Placeholders -Path '.env' -Map @{
             COMPOSE_PROFILES   = $profilesString
             ENV_STAGE          = $EnvStage
@@ -338,11 +373,19 @@ try {
             XDEBUG_REMOTE_PORT = $XdebugPort
             NODE_EXTERNAL_PORT = $NodePort
             DB_PORT            = $DbPort
-            DB_PASSWORD        = $ProjectName
+            DB_PASSWORD        = $dbPassword
             DB_DOCKERFILE      = $dbDockerfile
             DB_DATA_VOLUME     = $dbDataVolume
             DB_PORT_INTERNAL   = $dbPortInternal
             DB_COMMAND         = $dbCommand
+            DB_SCHEME          = $dbScheme
+            DB_CHARSET         = $dbCharset
+        }
+
+        # страховка: незаменённый плейсхолдер лучше поймать здесь, чем в контейнере
+        $leftovers = [regex]::Matches([IO.File]::ReadAllText((Resolve-Path '.env').Path), '{[A-Z_]+}')
+        if ($leftovers.Count -gt 0) {
+            throw ".env содержит незаменённые плейсхолдеры: $(($leftovers | ForEach-Object { $_.Value }) -join ', ')"
         }
 
         # --- php.ini ----------------------------------------------------------
@@ -433,9 +476,9 @@ try {
             Remove-ItemSafe '.editorconfig'
             Remove-ItemSafe '.github'
             Remove-ItemSafe '.git'
-            Remove-ItemSafe 'create_new_project.cmd'
-            Remove-ItemSafe 'create_new_project.sh'
-            Remove-ItemSafe 'create_new_project.ps1'
+            Remove-ItemSafe 'deploy.cmd'
+            Remove-ItemSafe 'deploy.sh'
+            Remove-ItemSafe 'deploy.ps1'
         }
         Write-Host 'Cleaned up' -ForegroundColor Green
     }
