@@ -10,6 +10,9 @@ set -Eeuo pipefail
 # --- настройки, которые раньше были зашиты в код ------------------------------
 HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}"   # WSL: /mnt/c/Windows/System32/drivers/etc/hosts
 REPO_URL="${REPO_URL:-https://github.com/safronik/docker-dummy.git}"
+# Репозиторий приложения (backend и frontend в одном). Обязателен для prod/test,
+# по желанию для dev. Можно задать заранее через окружение.
+CODE_REPO_URL="${CODE_REPO_URL:-}"
 ROUTER_NAME="${ROUTER_NAME:-router-nginx}"
 LOG_FILE="${LOG_FILE:-./create_new_project.trace.log}"
 
@@ -169,6 +172,35 @@ case "$ENV_STAGE" in
     *) die "Invalid environment stage: '$ENV_STAGE'" ;;
 esac
 
+# --- APPLICATION CODE ---------------------------------------------------------
+# prod/test: код обязан лежать в code/ до старта контейнеров — backend.entrypoint
+# выполняет composer install, frontend.entrypoint падает без package.json.
+# dev: по желанию. Отказ сохраняет прежнее поведение — контейнеры создают проект с нуля.
+CODE_REPO_ENABLED=false
+case "$ENV_STAGE" in
+    prod|test)
+        CODE_REPO_ENABLED=true
+        if [[ -z "$CODE_REPO_URL" ]]; then
+            ask CODE_REPO_URL "Application repository URL (must contain backend/ and frontend/)"
+        fi
+        [[ -n "$CODE_REPO_URL" ]] || die "Application repository URL is empty."
+        ;;
+    dev)
+        # заранее переданный адрес — уже согласие, вопрос не задаём
+        if [[ -n "$CODE_REPO_URL" ]]; then
+            CODE_REPO_ENABLED=true
+        elif ask_yn "Deploy existing application code from a repository?"; then
+            CODE_REPO_ENABLED=true
+            ask CODE_REPO_URL "Application repository URL (must contain backend/ and frontend/)"
+            [[ -n "$CODE_REPO_URL" ]] || die "Application repository URL is empty."
+        fi
+        ;;
+    blank)
+        [[ -z "$CODE_REPO_URL" ]] \
+            || die "CODE_REPO_URL is set, but stage 'blank' does not deploy application code."
+        ;;
+esac
+
 # --- BACKEND ------------------------------------------------------------------
 XDEBUG_REMOTE_PORT=9020
 BACKEND=false
@@ -245,6 +277,25 @@ fi
 cd "$DESTINATION"
 git clone "$REPO_URL" "./$PROJECT_NAME"
 cd "./$PROJECT_NAME"
+
+# --- код приложения -----------------------------------------------------------
+# Клонируем до всех правок и до docker compose up: при неверном адресе на диске
+# остаётся только каталог проекта, роутер и hosts ещё не тронуты.
+# Клон полный (без --depth): code/ остаётся путём деплоя, обновления идут через git.
+if [[ "$CODE_REPO_ENABLED" == true ]]; then
+    git clone -- "$CODE_REPO_URL" code \
+        || die "Cannot clone application repository. Check the URL and access rights. Remove '$PROJECT_DIR' before retrying."
+
+    # проверяем ровно те файлы, без которых упадут entrypoint'ы контейнеров
+    if [[ "$BACKEND" == true && ! -f code/backend/composer.json ]]; then
+        die "Application repository has no 'backend/composer.json'. Remove '$PROJECT_DIR' before retrying."
+    fi
+    if [[ "$FRONTEND" == true && ! -f code/frontend/package.json ]]; then
+        die "Application repository has no 'frontend/package.json'. Remove '$PROJECT_DIR' before retrying."
+    fi
+
+    echo "Application code deployed into code/"
+fi
 
 # --- .env ---------------------------------------------------------------------
 subst .env COMPOSE_PROFILES   "$PROFILES_STR"
