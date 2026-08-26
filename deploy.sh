@@ -93,6 +93,24 @@ subst() {
     sed -i "s|{$key}|$esc|g" "$file"
 }
 
+# gen_password [LENGTH] — криптостойкий пароль из [A-Za-z0-9].
+# Алфавит ограничен намеренно: значение попадает в URL (DATABASE_URL) и проходит
+# через sed, поэтому символы '+', '/', '=', '$' и кавычки недопустимы.
+gen_password() {
+    local length="${1:-32}" raw="" chunk
+    while (( ${#raw} < length )); do
+        if command -v openssl >/dev/null 2>&1; then
+            chunk="$(openssl rand -base64 48)"
+        else
+            # head первым в конвейере: после base64 закрытие трубы дало бы
+            # SIGPIPE, а pipefail превратил бы это в падение скрипта
+            chunk="$(head -c 48 /dev/urandom | base64)"
+        fi
+        raw+="${chunk//[^A-Za-z0-9]/}"
+    done
+    printf '%s' "${raw:0:length}"
+}
+
 # --- проверка окружения -------------------------------------------------------
 for bin in git docker sed; do
     command -v "$bin" >/dev/null 2>&1 || die "'$bin' not found in PATH."
@@ -175,6 +193,8 @@ DB_DATA_VOLUME="./data/dummy:/var/www"
 DB_PORT_INTERNAL=5432
 DB_COMMAND="postgres"
 DB_PORT=5432
+DB_SCHEME="postgresql"
+DB_CHARSET="utf8"
 
 if ask_yn "Do you need storage?"; then
     PROFILES+=(storage)
@@ -191,6 +211,8 @@ if ask_yn "Do you need storage?"; then
             DB_PORT_INTERNAL=3306
             DB_COMMAND="mysqld"
             DB_PORT=3306
+            DB_SCHEME="mysql"
+            DB_CHARSET="utf8mb4"
             ;;
         *)
             DB_DOCKERFILE="postgres.dockerfile"
@@ -198,6 +220,8 @@ if ask_yn "Do you need storage?"; then
             DB_PORT_INTERNAL=5432
             DB_COMMAND="postgres"
             DB_PORT=5432
+            DB_SCHEME="postgresql"
+            DB_CHARSET="utf8"
             ;;
     esac
 
@@ -230,11 +254,23 @@ subst .env PROJECT_DOMAIN     "$PROJECT_DOMAIN"
 subst .env XDEBUG_REMOTE_PORT "$XDEBUG_REMOTE_PORT"
 subst .env NODE_EXTERNAL_PORT "$NODE_EXTERNAL_PORT"
 subst .env DB_PORT            "$DB_PORT"
-subst .env DB_PASSWORD        "$PROJECT_NAME"
+# пароль не должен попасть в лог трассировки (DEBUG=1)
+if [[ "${DEBUG:-0}" == "1" ]]; then set +x; fi
+DB_PASSWORD="$(gen_password 32)"
+subst .env DB_PASSWORD        "$DB_PASSWORD"
+if [[ "${DEBUG:-0}" == "1" ]]; then set -x; fi
 subst .env DB_DOCKERFILE      "$DB_DOCKERFILE"
 subst .env DB_DATA_VOLUME     "$DB_DATA_VOLUME"
 subst .env DB_PORT_INTERNAL   "$DB_PORT_INTERNAL"
 subst .env DB_COMMAND         "$DB_COMMAND"
+subst .env DB_SCHEME          "$DB_SCHEME"
+subst .env DB_CHARSET         "$DB_CHARSET"
+
+# страховка: если в шаблон добавили ключ, а сюда его вписать забыли — падаем сразу,
+# а не через полчаса на непонятной ошибке контейнера
+if grep -q '{[A-Z_][A-Z_]*}' .env; then
+    die ".env contains unresolved placeholders: $(grep -o '{[A-Z_][A-Z_]*}' .env | tr '\n' ' ')"
+fi
 
 # --- php.ini ------------------------------------------------------------------
 subst "config/php-ini/php.ini" XDEBUG_REMOTE_PORT "$XDEBUG_REMOTE_PORT"
@@ -311,9 +347,9 @@ rm -f .gitattributes
 rm -f .editorconfig
 rm -rf .github
 rm -rf .git
-rm -f create_new_project.cmd
-rm -f create_new_project.sh
-rm -f create_new_project.ps1
+rm -f deploy.cmd
+rm -f deploy.sh
+rm -f deploy.ps1
 rm -f "$LOCATION_FILE"
 
 echo "Cleaned up"
