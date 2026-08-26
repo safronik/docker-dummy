@@ -35,6 +35,9 @@ services:
         container_name: ${PROJECT_NAME}-backend
         environment:
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}.${PROJECT_DOMAIN}"
+            # Строка подключения собирается здесь, чтобы пароль хранился ровно в одном месте — .env.
+            # environment имеет приоритет над env_file, поэтому .env.<stage> её не перебьёт.
+            DATABASE_URL: "${DB_SCHEME}://${PROJECT_NAME}:${DB_PASSWORD}@storage:${DB_PORT_INTERNAL}/${PROJECT_NAME}?charset=${DB_CHARSET}"
         working_dir: /var/www/html/backend
         volumes:
             - ./code:/var/www/html # code
@@ -83,8 +86,9 @@ services:
             POSTGRES_USER: ${PROJECT_NAME}
             POSTGRES_PASSWORD: ${DB_PASSWORD}
             PGDATA: /var/lib/postgresql/data/pgdata
+            MARIADB_DATABASE: ${PROJECT_NAME}
             MARIADB_USER: ${PROJECT_NAME}
-            MARIADB_PASSWORD: ${PROJECT_NAME}
+            MARIADB_PASSWORD: ${DB_PASSWORD}
             MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
         command: ${DB_COMMAND}
         restart: unless-stopped
