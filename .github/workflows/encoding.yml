@@ -1,0 +1,67 @@
+name: encoding
+
+on: [push, pull_request]
+
+jobs:
+  windows-scripts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # shell: powershell — это Windows PowerShell 5.1, а не pwsh 7.
+      # Именно 5.1 читает .ps1 без BOM в системной ANSI-кодировке.
+      - name: deploy.ps1 must start with a UTF-8 BOM
+        shell: powershell
+        run: |
+          $b = [IO.File]::ReadAllBytes((Resolve-Path .\deploy.ps1).Path)
+          if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) {
+            Write-Host '::error file=deploy.ps1::UTF-8 BOM missing. Windows PowerShell 5.1 will read the file in the system ANSI codepage and fail to parse it.'
+            exit 1
+          }
+          Write-Host 'deploy.ps1: UTF-8 BOM present'
+
+      - name: deploy.ps1 must parse under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          Write-Host ('PowerShell    : ' + $PSVersionTable.PSVersion)
+          Write-Host ('ANSI codepage : ' + [Text.Encoding]::Default.WebName)
+          $t = $null; $e = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path .\deploy.ps1).Path, [ref]$t, [ref]$e)
+          if ($e.Count -gt 0) {
+            $e | ForEach-Object {
+              Write-Host ('::error file=deploy.ps1,line={0}::{1}' -f $_.Extent.StartLineNumber, $_.Message)
+            }
+            exit 1
+          }
+          Write-Host 'deploy.ps1: 0 parse errors'
+
+      # Обратная проверка: BOM в батнике ломает `@echo off`, в bash — шебанг.
+      - name: deploy.cmd and deploy.sh must NOT have a BOM
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($f in 'deploy.cmd', 'deploy.sh') {
+            $b = [IO.File]::ReadAllBytes((Resolve-Path $f).Path)
+            if ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) {
+              Write-Host ('::error file={0}::must not start with a BOM' -f $f)
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+          Write-Host 'deploy.cmd, deploy.sh: no BOM'
+
+  posix-line-endings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # CR внутри этих файлов означает сломанный шебанг в контейнере.
+      - name: files executed by /bin/sh must use LF only
+        run: |
+          bad=$(grep -rlU $'\r' deploy.sh dockerfiles/ || true)
+          if [ -n "$bad" ]; then
+            echo "::error::CR found in: $bad"
+            exit 1
+          fi
+          echo 'deploy.sh, dockerfiles/: LF only'
