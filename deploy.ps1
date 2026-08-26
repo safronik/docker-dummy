@@ -39,6 +39,9 @@ param(
     [ValidateRange(1, 65535)] [int] $DbPort,
 
     [string] $RepoUrl    = 'https://github.com/safronik/docker-dummy.git',
+    # Репозиторий приложения (backend и frontend в одном).
+    # Обязателен для prod/test, по желанию для dev.
+    [string] $CodeRepoUrl,
     [string] $RouterName = 'router-nginx',
     [string] $HostsFile  = "$env:SystemRoot\System32\drivers\etc\hosts",
 
@@ -280,6 +283,30 @@ try {
         throw "Каталог конфигов роутера не найден: $routerHostsDir. Сначала разверните роутер."
     }
 
+    # --- код приложения -------------------------------------------------------
+    # prod/test: код обязан лежать в code\ до старта контейнеров.
+    # dev: по желанию, отказ сохраняет прежнее поведение.
+    $needCode = $false
+    if ($EnvStage -in @('prod', 'test')) {
+        $needCode = $true
+        if (-not $CodeRepoUrl) {
+            $CodeRepoUrl = Read-Value -Prompt 'URL репозитория приложения (в корне backend/ и frontend/)'
+        }
+    }
+    elseif ($EnvStage -eq 'dev') {
+        # заранее переданный адрес — уже согласие, вопрос не задаём
+        if ($CodeRepoUrl) {
+            $needCode = $true
+        }
+        elseif (Read-YesNo 'Развернуть готовый код приложения из репозитория?') {
+            $needCode = $true
+            $CodeRepoUrl = Read-Value -Prompt 'URL репозитория приложения (в корне backend/ и frontend/)'
+        }
+    }
+    elseif ($CodeRepoUrl) {
+        throw "-CodeRepoUrl задан, но окружение '$EnvStage' не разворачивает код приложения."
+    }
+
     $profiles = New-Object System.Collections.Generic.List[string]
 
     # --- backend --------------------------------------------------------------
@@ -357,6 +384,27 @@ try {
     Invoke-Native git @('clone', '--', $RepoUrl, $projectDir)
     Push-Location -LiteralPath $projectDir
     try {
+        # --- код приложения ---------------------------------------------------
+        # Клон полный (без --depth): code\ остаётся путём деплоя, обновления идут через git.
+        if ($needCode) {
+            Set-Step 'клонирование репозитория приложения'
+            try {
+                Invoke-Native git @('clone', '--', $CodeRepoUrl, 'code')
+            }
+            catch {
+                throw "Не удалось склонировать репозиторий приложения. Проверьте адрес и права доступа. Перед повторным запуском удалите '$projectDir'."
+            }
+
+            # проверяем ровно те файлы, без которых упадут entrypoint'ы контейнеров
+            if ($useBackend -and -not (Test-Path -LiteralPath 'code\backend\composer.json' -PathType Leaf)) {
+                throw "В репозитории приложения нет 'backend/composer.json'. Перед повторным запуском удалите '$projectDir'."
+            }
+            if ($useFrontend -and -not (Test-Path -LiteralPath 'code\frontend\package.json' -PathType Leaf)) {
+                throw "В репозитории приложения нет 'frontend/package.json'. Перед повторным запуском удалите '$projectDir'."
+            }
+            Write-Host 'Application code deployed into code/'
+        }
+
         # --- .env -------------------------------------------------------------
         Set-Step 'подстановка параметров в .env'
 
