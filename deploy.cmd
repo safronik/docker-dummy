@@ -89,6 +89,36 @@ if exist "%PROJECT_DIR%" (set "ERRMSG=Directory already exists: %PROJECT_DIR%" &
 set "ROUTER_HOSTS_DIR=%DESTINATION%\router\config\nginx_hosts"
 if not exist "%ROUTER_HOSTS_DIR%\" (set "ERRMSG=Router config dir not found: %ROUTER_HOSTS_DIR% - deploy the router first." & goto :die)
 
+:: --- APPLICATION CODE ---------------------------------------------------------
+:: prod/test: код обязан лежать в code\ до старта контейнеров.
+:: dev: по желанию, отказ сохраняет прежнее поведение.
+set "NEED_CODE="
+if /i "%ENV_STAGE%"=="prod" goto :code_repo_required
+if /i "%ENV_STAGE%"=="test" goto :code_repo_required
+if /i "%ENV_STAGE%"=="dev"  goto :code_repo_optional
+
+:: blank — код не разворачивается
+if defined CODE_REPO_URL (set "ERRMSG=CODE_REPO_URL is set, but stage %ENV_STAGE% does not deploy application code." & goto :die)
+goto :code_repo_done
+
+:code_repo_required
+set "NEED_CODE=1"
+if not defined CODE_REPO_URL call :ask CODE_REPO_URL "Application repository URL (must contain backend/ and frontend/)"
+if not defined CODE_REPO_URL (set "ERRMSG=Application repository URL is empty." & goto :die)
+goto :code_repo_done
+
+:code_repo_optional
+:: заранее переданный адрес — уже согласие, вопрос не задаём
+if defined CODE_REPO_URL set "NEED_CODE=1"
+if defined CODE_REPO_URL goto :code_repo_done
+call :ask_yn USE_CODE_REPO "Deploy existing application code from a repository?"
+if not "%USE_CODE_REPO%"=="true" goto :code_repo_done
+set "NEED_CODE=1"
+call :ask CODE_REPO_URL "Application repository URL (must contain backend/ and frontend/)"
+if not defined CODE_REPO_URL (set "ERRMSG=Application repository URL is empty." & goto :die)
+
+:code_repo_done
+
 :: --- BACKEND ------------------------------------------------------------------
 set "XDEBUG_REMOTE_PORT=9020"
 call :ask_yn BACKEND "Do you need backend?"
@@ -151,6 +181,18 @@ set "STEP=git clone %REPO_URL%"
 cd /d "%DESTINATION%" || goto :fail
 git clone "%REPO_URL%" ".\%PROJECT_NAME%" || goto :fail
 cd /d "%PROJECT_DIR%" || goto :fail
+
+:: --- код приложения -----------------------------------------------------------
+:: Клон полный (без --depth): code\ остаётся путём деплоя, обновления идут через git.
+:: !CODE_REPO_URL! вместо %CODE_REPO_URL%: значение подставляется после разбора строки,
+:: поэтому '&' и '|' внутри адреса не разорвут команду.
+if not defined NEED_CODE goto :code_done
+set "STEP=cloning application repository"
+git clone -- "!CODE_REPO_URL!" "code" || (set "ERRMSG=Cannot clone application repository. Check the URL and access rights. Remove %PROJECT_DIR% before retrying." & goto :die)
+if "%BACKEND%"=="true"  if not exist "code\backend\composer.json"  (set "ERRMSG=Application repository has no 'backend/composer.json'. Remove %PROJECT_DIR% before retrying."  & goto :die)
+if "%FRONTEND%"=="true" if not exist "code\frontend\package.json" (set "ERRMSG=Application repository has no 'frontend/package.json'. Remove %PROJECT_DIR% before retrying." & goto :die)
+echo Application code deployed into code\
+:code_done
 
 :: --- .env ---------------------------------------------------------------------
 set "STEP=patching .env"
