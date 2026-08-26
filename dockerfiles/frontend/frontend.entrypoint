@@ -4,16 +4,29 @@ set -e
 # Execute everything under www-data
 if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
     groupmod -o -g "$HOST_GID" www-data
-    usermod -o -u "$HOST_UID" www-data
+    usermod  -o -u "$HOST_UID" www-data
 fi
 
-# No frontend installed. Performing installation
-if [ ! -f package.json ]; then
-    cd ..
-    npm create -y vue@3.22.4 frontend -- --ts --router --pinia --eslint
-    cd frontend
-    npm install
-    npm pkg set scripts.dev="vite --host 0.0.0.0"
-fi
+case "$ENV_STAGE" in
+
+    # No frontend installed. Performing installation
+    blank|dev)
+        if [ ! -f package.json ]; then
+            cd ..
+            npm create -y vue@3.22.4 frontend -- --ts --router --pinia --eslint
+            cd frontend
+            npm pkg set scripts.dev="vite --host 0.0.0.0"
+        fi
+        [ -d node_modules ] || npm install
+        ;;
+
+    # Fatal error if code is empty. It should be already provided by installation script
+    prod|test)
+        [ -f package.json ] || {
+            echo "FATAL: no frontend code in $(pwd) (ENV_STAGE=$ENV_STAGE)" >&2
+            exit 1
+        }
+        ;;
+esac
 
 exec "$@"
