@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Развёртывание нового web-проекта (порт create_new_project.sh / .cmd).
