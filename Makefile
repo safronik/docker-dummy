@@ -1,6 +1,6 @@
-USER_ID=$(shell id -u)
+HOST_UID=$(shell id -u)
 
-DOCKER_COMPOSE = @USER_ID=$(USER_ID) docker compose
+DOCKER_COMPOSE = @HOST_UID=$(HOST_UID) docker compose
 DOCKER_COMPOSE_RUN = ${DOCKER_COMPOSE} run --rm backend ##todo make all of the components installed by this command
 DOCKER_COMPOSE_EXEC = ${DOCKER_COMPOSE} exec
 

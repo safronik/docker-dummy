@@ -34,6 +34,8 @@ services:
         image: ${PROJECT_NAME}/backend
         container_name: ${PROJECT_NAME}-backend
         environment:
+            HOST_UID: ${HOST_UID}
+            HOST_GID: ${HOST_GID}
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}.${PROJECT_DOMAIN}"
             # Строка подключения собирается здесь, чтобы пароль хранился ровно в одном месте — .env.
             # environment имеет приоритет над env_file, поэтому .env.<stage> её не перебьёт.
@@ -62,6 +64,9 @@ services:
       volumes:
           - ./code:/var/www/html
       environment:
+          HOST_UID: ${HOST_UID}
+          HOST_GID: ${HOST_GID}
+          ENV_STAGE: ${ENV_STAGE:-dev}
           __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${PROJECT_NAME}.${PROJECT_DOMAIN}
       networks:
           - inner

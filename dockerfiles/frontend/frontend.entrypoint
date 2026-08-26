@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-# Execute everything under www-data
-if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
-    groupmod -o -g "$HOST_GID" www-data
-    usermod  -o -u "$HOST_UID" www-data
+FRONT_USER=node
+if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ] && id "$FRONT_USER" >/dev/null 2>&1; then
+    groupmod -o -g "$HOST_GID" "$FRONT_USER"
+    usermod  -o -u "$HOST_UID" "$FRONT_USER"
 fi
 
 case "$ENV_STAGE" in
