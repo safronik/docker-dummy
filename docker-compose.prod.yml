@@ -1,3 +1,9 @@
 # Стадийное дополнение к docker-compose.yml для окружения prod.
 # Портов наружу не публикует: доступ к сервисам — только через router и сеть inner.
-services: {}
+services:
+    router:
+        environment:
+            LETSENCRYPT_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
+            LETSENCRYPT_EMAIL: "${SSL_EMAIL}"
+            HTTPS_METHOD: "redirect"
+            HSTS: "max-age=31536000"
