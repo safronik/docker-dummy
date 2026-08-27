@@ -16,6 +16,10 @@
     .\create_new_project.ps1 -Destination D:\docker -ProjectName shop -ProjectDomain local `
                              -EnvStage dev -Backend -Frontend -Database postgres
 
+.EXAMPLE
+    .\create_new_project.ps1 -Destination D:\docker -ProjectName shop -ProjectDomain example.com `
+                             -EnvStage prod -SslEmail admin@example.com
+
 .NOTES
     Требуется запуск от администратора (правка hosts), git и запущенный Docker Desktop.
 #>
@@ -42,6 +46,9 @@ param(
     # Репозиторий приложения (backend и frontend в одном).
     # Обязателен для prod/test, по желанию для dev.
     [string] $CodeRepoUrl,
+    # Адрес для Let's Encrypt (ACME-аккаунт и письма об истечении сертификата).
+    # Обязателен для prod/test.
+    [string] $SslEmail,
     [string] $RouterName = 'router-nginx',
     [string] $HostsFile  = "$env:SystemRoot\System32\drivers\etc\hosts",
 
@@ -307,6 +314,22 @@ try {
         throw "-CodeRepoUrl задан, но окружение '$EnvStage' не разворачивает код приложения."
     }
 
+    # --- SSL ------------------------------------------------------------------
+    # prod/test: сертификат выпускается автоматически, адрес обязателен.
+    # blank/dev: домены локальные, Let's Encrypt неприменим — значение остаётся пустым.
+    # Переданный заранее адрес не отбрасываем: он доходит до роутера через
+    # LETSENCRYPT_EMAIL базового compose-файла, поэтому проверяем его на любой стадии.
+    # Алфавит ограничен намеренно: значение подставляется в файлы, кавычки и '$' в нём
+    # недопустимы.
+    $emailPattern = '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]+$'
+    if ($EnvStage -in @('prod', 'test') -and -not $SslEmail) {
+        $SslEmail = Read-Value -Prompt "E-mail для Let's Encrypt (уведомления об истечении сертификата)" `
+            -Pattern $emailPattern -PatternMessage 'Ожидается адрес вида name@example.com'
+    }
+    if ($SslEmail -and $SslEmail -notmatch $emailPattern) {
+        throw "Недопустимый e-mail: '$SslEmail'. Ожидается адрес вида name@example.com"
+    }
+
     $profiles = New-Object System.Collections.Generic.List[string]
 
     # --- backend --------------------------------------------------------------
@@ -418,6 +441,7 @@ try {
             ENV_STAGE          = $EnvStage
             PROJECT_NAME       = $ProjectName
             PROJECT_DOMAIN     = $ProjectDomain
+            SSL_EMAIL          = $SslEmail
             XDEBUG_REMOTE_PORT = $XdebugPort
             NODE_EXTERNAL_PORT = $NodePort
             DB_PORT            = $DbPort
