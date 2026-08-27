@@ -13,6 +13,9 @@ REPO_URL="${REPO_URL:-https://github.com/safronik/docker-dummy.git}"
 # Репозиторий приложения (backend и frontend в одном). Обязателен для prod/test,
 # по желанию для dev. Можно задать заранее через окружение.
 CODE_REPO_URL="${CODE_REPO_URL:-}"
+# Адрес для Let's Encrypt: ACME-аккаунт и письма об истечении сертификата.
+# Обязателен для prod/test. Можно задать заранее через окружение.
+SSL_EMAIL="${SSL_EMAIL:-}"
 ROUTER_NAME="${ROUTER_NAME:-router-nginx}"
 LOG_FILE="${LOG_FILE:-./create_new_project.trace.log}"
 
@@ -94,6 +97,14 @@ subst() {
     # экранируем символы, значимые для правой части sed s|||
     esc=$(printf '%s' "$val" | sed -e 's/[&|\\]/\\&/g')
     sed -i "s|{$key}|$esc|g" "$file"
+}
+
+# valid_email VALUE — local@domain.tld из безопасного алфавита.
+# Алфавит ограничен намеренно, как и у пароля БД: значение подставляется в файлы
+# через sed, поэтому кавычки, '$' и '&' в нём недопустимы. Точную проверку адреса
+# сделать нельзя — задача правила в том, чтобы поймать опечатку при вводе.
+valid_email() {
+    [[ "$1" =~ ^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]+$ ]]
 }
 
 # gen_password [LENGTH] — криптостойкий пароль из [A-Za-z0-9].
@@ -201,6 +212,26 @@ case "$ENV_STAGE" in
         ;;
 esac
 
+# --- SSL ----------------------------------------------------------------------
+# prod/test: сертификат выпускается автоматически, адрес обязателен — на него
+# Let's Encrypt регистрирует аккаунт и шлёт письма об истечении.
+# blank/dev: домены локальные, Let's Encrypt неприменим — значение остаётся пустым.
+# Переданный заранее адрес не отбрасываем ни на одной стадии: он попадает в .env
+# и доходит до роутера через LETSENCRYPT_EMAIL базового compose-файла.
+case "$ENV_STAGE" in
+    prod|test)
+        if [[ -z "$SSL_EMAIL" ]]; then
+            ask SSL_EMAIL "E-mail for Let's Encrypt (certificate expiry notices)"
+        fi
+        [[ -n "$SSL_EMAIL" ]] || die "SSL e-mail is empty, but stage '$ENV_STAGE' issues a certificate."
+        ;;
+esac
+
+# проверяем на любой стадии: заранее переданный адрес тоже попадёт в .env
+if [[ -n "$SSL_EMAIL" ]]; then
+    valid_email "$SSL_EMAIL" || die "Invalid e-mail: '$SSL_EMAIL'. Expected form: name@example.com"
+fi
+
 # --- BACKEND ------------------------------------------------------------------
 XDEBUG_REMOTE_PORT=9020
 BACKEND=false
@@ -302,6 +333,7 @@ subst .env COMPOSE_PROFILES   "$PROFILES_STR"
 subst .env ENV_STAGE          "$ENV_STAGE"
 subst .env PROJECT_NAME       "$PROJECT_NAME"
 subst .env PROJECT_DOMAIN     "$PROJECT_DOMAIN"
+subst .env SSL_EMAIL          "$SSL_EMAIL"
 subst .env XDEBUG_REMOTE_PORT "$XDEBUG_REMOTE_PORT"
 subst .env NODE_EXTERNAL_PORT "$NODE_EXTERNAL_PORT"
 subst .env DB_PORT            "$DB_PORT"
