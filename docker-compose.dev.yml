@@ -4,6 +4,12 @@
 # резолвится сначала в ::1, публикация только на 127.0.0.1 оставляла бы его без слушателя.
 services:
 
+    router:
+      environment:
+        CERT_NAME: "wildcard-${PROJECT_DOMAIN}"
+        HTTPS_METHOD: "noredirect"
+        HSTS: "off"
+
     frontend:
         ports:
             - "127.0.0.1:${NODE_EXTERNAL_PORT}:5173"

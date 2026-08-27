@@ -7,11 +7,6 @@ services:
         environment:
               VIRTUAL_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
               VIRTUAL_PORT: 80
-              LETSENCRYPT_HOST: "${PROJECT_NAME}.${PROJECT_DOMAIN}"
-              LETSENCRYPT_EMAIL: "${SSL_EMAIL:-}"
-              CERT_NAME: "wildcard-${PROJECT_DOMAIN}"
-              HTTPS_METHOD: "noredirect"
-              HSTS: "off"
         build:
             context: ./dockerfiles/infrastructure
             dockerfile: router.dockerfile
