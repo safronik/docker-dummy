@@ -119,6 +119,27 @@ if not defined CODE_REPO_URL (set "ERRMSG=Application repository URL is empty." 
 
 :code_repo_done
 
+:: --- SSL ----------------------------------------------------------------------
+:: prod/test: сертификат выпускается автоматически, адрес обязателен.
+:: blank/dev: домены локальные, Let's Encrypt неприменим — значение остаётся пустым.
+:: Переданный заранее адрес не отбрасываем: он доходит до роутера через
+:: LETSENCRYPT_EMAIL базового compose-файла, поэтому проверяем его на любой стадии.
+if /i "%ENV_STAGE%"=="prod" goto :ssl_email_required
+if /i "%ENV_STAGE%"=="test" goto :ssl_email_required
+goto :ssl_email_check
+
+:ssl_email_required
+if not defined SSL_EMAIL call :ask SSL_EMAIL "E-mail for Let's Encrypt (certificate expiry notices)"
+if not defined SSL_EMAIL (set "ERRMSG=SSL e-mail is empty, but stage %ENV_STAGE% issues a certificate." & goto :die)
+
+:: проверку не пишем как `if defined ... call ... || goto :die`: при ложном условии
+:: оператор || разбирался бы по ERRORLEVEL от предыдущей команды
+:ssl_email_check
+if not defined SSL_EMAIL goto :ssl_email_done
+call :validate_email SSL_EMAIL || goto :die
+
+:ssl_email_done
+
 :: --- BACKEND ------------------------------------------------------------------
 set "XDEBUG_REMOTE_PORT=9020"
 call :ask_yn BACKEND "Do you need backend?"
@@ -200,6 +221,7 @@ call :subst ".env" "COMPOSE_PROFILES"   "%PROFILES%"          || goto :fail
 call :subst ".env" "ENV_STAGE"          "%ENV_STAGE%"          || goto :fail
 call :subst ".env" "PROJECT_NAME"       "%PROJECT_NAME%"       || goto :fail
 call :subst ".env" "PROJECT_DOMAIN"     "%PROJECT_DOMAIN%"     || goto :fail
+call :subst ".env" "SSL_EMAIL"          "!SSL_EMAIL!"          || goto :fail
 call :subst ".env" "XDEBUG_REMOTE_PORT" "%XDEBUG_REMOTE_PORT%" || goto :fail
 call :subst ".env" "NODE_EXTERNAL_PORT" "%NODE_EXTERNAL_PORT%" || goto :fail
 call :subst ".env" "DB_PORT"            "%DB_PORT%"            || goto :fail
@@ -356,6 +378,31 @@ exit /b 0
 echo(%~1| findstr /r /c:"^[A-Za-z0-9._-][A-Za-z0-9._-]*$" >nul
 if errorlevel 1 (
     set "ERRMSG=%~2 contains invalid characters. Allowed: A-Z a-z 0-9 . _ -"
+    exit /b 1
+)
+exit /b 0
+
+:: validate_email VAR — local@domain.tld из безопасного алфавита.
+:: Алфавит ограничен намеренно: значение уезжает в PowerShell-строку в :subst,
+:: где кавычка разорвала бы литерал.
+::
+:: Принимает ИМЯ переменной, а не значение, и проверяет её PowerShell'ом, а не
+:: `echo ... | findstr` как соседние валидаторы. Причина: конвейер cmd исполняет
+:: обе половины в отдельном экземпляре cmd, который разбирает УЖЕ раскрытое
+:: значение. Адрес вида `a@b.c&echo PWNED>f.txt` при таком разборе расщепляется:
+:: findstr видит только `a@b.c` и признаёт ввод верным, а хвост исполняется как
+:: команда. Здесь значение читается из окружения самим PowerShell и в разбираемую
+:: командную строку не попадает вовсе.
+::
+:: Регулярное выражение то же, что в deploy.ps1, и движок тот же — вердикты
+:: двух установщиков совпадают по построению.
+:validate_email
+set "__email_var=%~1"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$v = [Environment]::GetEnvironmentVariable($env:__email_var); if ($v -match '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]+$') { exit 0 } else { exit 1 }"
+:: сам адрес в сообщение не подставляем: :die печатает ERRMSG через %ERRMSG%,
+:: то есть подстановкой до разбора строки — спецсимволы из ввода исполнились бы
+if errorlevel 1 (
+    set "ERRMSG=Invalid e-mail. Expected form: name@example.com"
     exit /b 1
 )
 exit /b 0
