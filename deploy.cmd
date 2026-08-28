@@ -172,11 +172,12 @@ echo   1 - PostgreSQL (default)
 echo   2 - MariaDB
 call :ask DB_CHOICE "Your choice (1/2)" "1"
 
+:: DB_COMMAND=mariadbd, а не mysqld: в актуальных MariaDB симлинка mysqld нет, см. deploy.sh.
 if "%DB_CHOICE%"=="2" (
     set "DB_DOCKERFILE=mariadb.dockerfile"
     set "DB_DATA_VOLUME=./data/mysql:/var/lib/mysql"
     set "DB_PORT_INTERNAL=3306"
-    set "DB_COMMAND=mysqld"
+    set "DB_COMMAND=mariadbd"
     set "DB_PORT=3306"
     set "DB_SCHEME=mysql"
     set "DB_CHARSET=utf8mb4"
