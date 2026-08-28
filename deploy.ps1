@@ -377,7 +377,8 @@ try {
         $dbDockerfile   = 'mariadb.dockerfile'
         $dbDataVolume   = './data/mysql:/var/lib/mysql'
         $dbPortInternal = 3306
-        $dbCommand      = 'mysqld'
+        # mariadbd, а не mysqld: в актуальных MariaDB симлинка mysqld нет, см. deploy.sh.
+        $dbCommand      = 'mariadbd'
         $dbDefaultPort  = 3306
         $dbScheme       = 'mysql'
         $dbCharset      = 'utf8mb4'
