@@ -272,7 +272,10 @@ if ask_yn "Do you need storage?"; then
             DB_DOCKERFILE="mariadb.dockerfile"
             DB_DATA_VOLUME="./data/mysql:/var/lib/mysql"
             DB_PORT_INTERNAL=3306
-            DB_COMMAND="mysqld"
+            # mariadbd, а не mysqld: mariadb.dockerfile собирается от mariadb:latest, где
+            # совместимостного симлинка mysqld уже нет (проверено на MariaDB 12.3). С mysqld
+            # сервер не стартует вовсе — command not found, контейнер уходит в рестарт-цикл.
+            DB_COMMAND="mariadbd"
             DB_PORT=3306
             DB_SCHEME="mysql"
             DB_CHARSET="utf8mb4"
