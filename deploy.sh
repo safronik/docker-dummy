@@ -434,6 +434,8 @@ rm -f deploy.cmd
 rm -f deploy.sh
 rm -f deploy.ps1
 rm -f "$LOCATION_FILE"
+# и сам шаблон, из которого $LOCATION_FILE был скопирован, иначе он уезжает пользователю
+rm -f dummy.domain_location
 
 echo "Cleaned up"
 pause
