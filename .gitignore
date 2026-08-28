@@ -2,6 +2,7 @@
 .idea
 .git
 .tasks
+.serena
 /.env
 /.env.dev
 /.env.prod
