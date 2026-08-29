@@ -433,7 +433,6 @@ rm -f .gitattributes
 rm -f .editorconfig
 rm -rf .github
 rm -rf .git
-rm -f deploy.cmd
 rm -f deploy.sh
 rm -f deploy.ps1
 rm -f "$LOCATION_FILE"

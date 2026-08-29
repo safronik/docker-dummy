@@ -549,7 +549,6 @@ try {
             Remove-ItemSafe '.editorconfig'
             Remove-ItemSafe '.github'
             Remove-ItemSafe '.git'
-            Remove-ItemSafe 'deploy.cmd'
             Remove-ItemSafe 'deploy.sh'
             Remove-ItemSafe 'deploy.ps1'
         }

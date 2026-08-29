@@ -1,5 +1,5 @@
 # Стадийное дополнение к docker-compose.yml для окружения blank.
-# Устанавливается как docker-compose.override.yml — см. deploy.sh / deploy.ps1 / deploy.cmd
+# Устанавливается как docker-compose.override.yml — см. deploy.sh / deploy.ps1
 # Две записи на порт — петля IPv4 и IPv6: имя localhost на многих системах
 # резолвится сначала в ::1, публикация только на 127.0.0.1 оставляла бы его без слушателя.
 services:
