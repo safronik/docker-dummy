@@ -1,11 +1,10 @@
 #!/bin/sh
 set -e
 
-FRONT_USER=node
-if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ] && id "$FRONT_USER" >/dev/null 2>&1; then
-    groupmod -o -g "$HOST_GID" "$FRONT_USER"
-    usermod  -o -u "$HOST_UID" "$FRONT_USER"
 FRONTEND_USER=node
+if [ -n "$APP_UID" ] && [ -n "$APP_GID" ] && id "$FRONTEND_USER" >/dev/null 2>&1; then
+    usermod  -o -u "$APP_UID" "$FRONTEND_USER"
+    groupmod -o -g "$APP_GID" "$FRONTEND_USER"
 fi
 
 case "$ENV_STAGE" in

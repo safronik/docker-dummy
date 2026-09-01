@@ -34,8 +34,8 @@ services:
         image: ${PROJECT_NAME}/backend
         container_name: ${PROJECT_NAME}-backend
         environment:
-            HOST_UID: ${HOST_UID}
-            HOST_GID: ${HOST_GID}
+            APP_UID: ${APP_UID}
+            APP_GID: ${APP_GID}
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}.${PROJECT_DOMAIN}"
             DATABASE_URL: "${DB_SCHEME}://${PROJECT_NAME}:${DB_PASSWORD}@storage:${DB_PORT_INTERNAL}/${PROJECT_NAME}?charset=${DB_CHARSET}"
         working_dir: /var/www/html/backend
@@ -63,8 +63,8 @@ services:
       volumes:
           - frontend_node_modules:/var/www/html/node_modules
       environment:
-          HOST_UID: ${HOST_UID}
-          HOST_GID: ${HOST_GID}
+          APP_UID: ${APP_UID}
+          APP_GID: ${APP_GID}
           ENV_STAGE: ${ENV_STAGE:-dev}
           __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${PROJECT_NAME}.${PROJECT_DOMAIN}
       networks:
