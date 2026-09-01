@@ -14,7 +14,7 @@ services:
       volumes:
         - ./code/backend:/var/www/html/ # code
         - ./logs/php:/log/php # logs
-        - ./config/php-ini/php-prod.ini:/usr/local/etc/php/conf.d/zzz-dev-override-php.ini:ro #php-ini override
+        - ./config/php-ini/php-dev.ini:/usr/local/etc/php/conf.d/zzz-dev-override-php.ini:ro #php-ini override
 
     frontend:
         volumes:
