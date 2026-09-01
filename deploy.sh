@@ -252,7 +252,7 @@ fi
 
 # --- STORAGE ------------------------------------------------------------------
 DB_DOCKERFILE="postgres.dockerfile"
-DB_DATA_VOLUME="./data/dummy:/var/www"
+DB_DATA_VOLUME="storage_data:/var/www"
 DB_PORT_INTERNAL=5432
 DB_COMMAND="postgres"
 DB_PORT=5432
@@ -270,7 +270,7 @@ if ask_yn "Do you need storage?"; then
     case "$DB_CHOICE" in
         2)
             DB_DOCKERFILE="mariadb.dockerfile"
-            DB_DATA_VOLUME="./data/mysql:/var/lib/mysql"
+            DB_DATA_VOLUME="storage_data:/var/lib/mysql"
             DB_PORT_INTERNAL=3306
             # mariadbd, а не mysqld: mariadb.dockerfile собирается от mariadb:latest, где
             # совместимостного симлинка mysqld уже нет (проверено на MariaDB 12.3). С mysqld
@@ -282,7 +282,7 @@ if ask_yn "Do you need storage?"; then
             ;;
         *)
             DB_DOCKERFILE="postgres.dockerfile"
-            DB_DATA_VOLUME="./data/postgres:/var/lib/postgresql/data/pgdata"
+            DB_DATA_VOLUME="storage_data:/var/lib/postgresql/data/pgdata"
             DB_PORT_INTERNAL=5432
             DB_COMMAND="postgres"
             DB_PORT=5432

@@ -13,10 +13,10 @@ services:
         image: ${PROJECT_NAME}/router
         container_name: ${PROJECT_NAME}-router
         volumes:
-            - ./code:/var/www/html
-            - ./config/nginx/conf.d:/etc/nginx/conf.d
-            - ./config/nginx/vhost.d/${ENV_STAGE:-dev}:/etc/nginx/vhost.d
-            - ./logs/nginx:/var/log/nginx
+            - ./code:/var/www/html # static
+            - ./config/nginx/conf.d:/etc/nginx/conf.d # config
+            - ./config/nginx/vhost.d/${ENV_STAGE:-dev}:/etc/nginx/vhost.d # config
+            - ./logs/nginx:/var/log/nginx # logs
         restart: unless-stopped
         networks:
             - inner
@@ -40,9 +40,10 @@ services:
             DATABASE_URL: "${DB_SCHEME}://${PROJECT_NAME}:${DB_PASSWORD}@storage:${DB_PORT_INTERNAL}/${PROJECT_NAME}?charset=${DB_CHARSET}"
         working_dir: /var/www/html/backend
         volumes:
-            - ./code:/var/www/html # code
-            - ./config/php-ini/php.ini:/usr/local/etc/php/conf.d/zz-php.ini:ro
-            - ./logs/php:/log/php # logs
+            - ./config/php-ini/php.ini:/usr/local/etc/php/conf.d/zz-php.ini:ro #php-ini
+            - backend_var:/var/www/html/var
+            - backend_vendor:/var/www/html/vendor
+            - backend_uploads:/var/www/html/public/uploads
         networks:
             - inner
         extra_hosts:
@@ -60,7 +61,7 @@ services:
       container_name: ${PROJECT_NAME}-frontend
       working_dir: /var/www/html/frontend
       volumes:
-          - ./code:/var/www/html
+          - frontend_node_modules:/var/www/html/node_modules
       environment:
           HOST_UID: ${HOST_UID}
           HOST_GID: ${HOST_GID}
@@ -97,6 +98,13 @@ services:
         restart: unless-stopped
         networks:
             - inner
+
+volumes:
+  backend_var:
+  backend_vendor:
+  backend_uploads:
+  frontend_node_modules:
+  storage_data:
 
 networks:
     nginx-proxy:

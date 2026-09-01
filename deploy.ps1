@@ -366,7 +366,7 @@ try {
     }
 
     $dbDockerfile   = 'postgres.dockerfile'
-    $dbDataVolume   = './data/postgres:/var/lib/postgresql/data/pgdata'
+    $dbDataVolume   = 'storage_data:/var/lib/postgresql/data/pgdata'
     $dbPortInternal = 5432
     $dbCommand      = 'postgres'
     $dbDefaultPort  = 5432
@@ -375,7 +375,7 @@ try {
 
     if ($Database -eq 'mariadb') {
         $dbDockerfile   = 'mariadb.dockerfile'
-        $dbDataVolume   = './data/mysql:/var/lib/mysql'
+        $dbDataVolume   = 'storage_data:/var/lib/mysql'
         $dbPortInternal = 3306
         # mariadbd, а не mysqld: в актуальных MariaDB симлинка mysqld нет, см. deploy.sh.
         $dbCommand      = 'mariadbd'
