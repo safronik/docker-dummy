@@ -5,6 +5,7 @@ FRONT_USER=node
 if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ] && id "$FRONT_USER" >/dev/null 2>&1; then
     groupmod -o -g "$HOST_GID" "$FRONT_USER"
     usermod  -o -u "$HOST_UID" "$FRONT_USER"
+FRONTEND_USER=node
 fi
 
 case "$ENV_STAGE" in
@@ -29,4 +30,4 @@ case "$ENV_STAGE" in
         ;;
 esac
 
-exec "$@"
+exec gosu "$FRONTEND_USER" "$@"

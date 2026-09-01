@@ -7,6 +7,7 @@ export COMPOSER_NO_INTERACTION=1
 if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
     groupmod -o -g "$HOST_GID" www-data
     usermod -o -u "$HOST_UID" www-data
+BACKEND_USER=www-data
 fi
 
 # ----- PROD -----
@@ -60,4 +61,4 @@ if [ "$ENV_STAGE" = "dev" ]; then
     composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
 fi
 
-exec "$@"
+exec gosu "$BACKEND_USER" "$@"
