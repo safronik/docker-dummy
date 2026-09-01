@@ -26,7 +26,17 @@ if [ ! -f composer.json ]; then
     echo "==> Creating Symfony project..."
 
     # Skeleton
-    composer create-project symfony/skeleton:"8.*" ./ --no-interaction
+    # /var/www/html не пуст даже на чистой установке: docker создаёт точки монтирования
+    # var/, vendor/, public/uploads/ из именованных томов, а composer create-project
+    # требует пустой каталог. Собираем скелет во временном каталоге и копируем поверх.
+    TMP_CREATION_DIR=/tmp/symfony-skeleton
+    rm -rf "$TMP_CREATION_DIR"
+    composer create-project symfony/skeleton:"8.*" "$TMP_CREATION_DIR" --no-interaction --no-install
+    cp -a "$TMP_CREATION_DIR"/. ./
+    rm -rf "$TMP_CREATION_DIR"
+
+    echo "==> Installing composer dependencies..."
+    composer install
 
     # Base
     echo "==> Installing symfony/serializer..."
@@ -43,9 +53,6 @@ if [ ! -f composer.json ]; then
     # SPA
     composer require nelmio/cors-bundle --no-interaction
     composer require symfony/serializer-pack --no-interaction
-
-    echo "==> Installing composer dependencies..."
-    composer install
 fi
 
 # ----- DEV -----

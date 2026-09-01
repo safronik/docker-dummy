@@ -12,9 +12,15 @@ case "$ENV_STAGE" in
     # No frontend installed. Performing installation
     blank|dev)
         if [ ! -f package.json ]; then
-            cd ..
+            TMP_CREATION_DIR=/tmp/node
+            WORK_DIR=$(pwd)
+            rm -rf "$TMP_CREATION_DIR"
+            mkdir "$TMP_CREATION_DIR"
+            cd "$TMP_CREATION_DIR"
             npm create -y vue@3.22.4 frontend -- --ts --router --pinia --eslint
-            cd frontend
+            cp -a "$TMP_CREATION_DIR"/. "$WORK_DIR"
+            cd "$WORK_DIR"
+            rm -rf "$TMP_CREATION_DIR"
             npm pkg set scripts.dev="vite --host 0.0.0.0"
         fi
         [ -d node_modules ] || npm install
