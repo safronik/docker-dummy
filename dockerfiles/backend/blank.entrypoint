@@ -9,4 +9,8 @@ if [ -n "$APP_UID" ] && [ -n "$APP_GID" ]; then
     groupmod -o -g "$APP_GID" "$BACKEND_USER"
 fi
 
-exec gosu "$BACKEND_USER" "$@"
+# php-fpm master должен остаться root: понижение прав для воркеров делает
+# сам FPM по user/group из www.conf (там www-data, uid/gid которого уже
+# подогнаны usermod/groupmod выше). gosu здесь ломает переоткрытие error_log
+# после setuid — "failed to open error_log (/proc/self/fd/2): Permission denied".
+exec "$@"

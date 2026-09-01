@@ -9,6 +9,26 @@ if [ -n "$APP_UID" ] && [ -n "$APP_GID" ]; then
     groupmod -o -g "$APP_GID" "$BACKEND_USER"
 fi
 
+# usermod/groupmod не меняют владельца уже существующих файлов: точки монтирования
+# именованных томов (var, vendor, public/uploads) docker создаёт как root:root
+# до старта entrypoint. chown без -R — тома на первом запуске пустые, а на
+# bind-mount (:ro на prod/test) команда безопасно упадёт и будет проигнорирована.
+chown "$BACKEND_USER":"$BACKEND_USER" . var vendor public/uploads 2>/dev/null || true
+
+# HOME www-data (/var/www) в образе php:8.4-fpm принадлежит root — composer
+# под BACKEND_USER не может писать туда кэш.
+export COMPOSER_HOME=/tmp/composer
+mkdir -p "$COMPOSER_HOME"
+chown "$BACKEND_USER":"$BACKEND_USER" "$COMPOSER_HOME"
+
+composer() {
+    if [ "$ENV_STAGE" = "dev" ]; then
+        gosu "$BACKEND_USER" env COMPOSER_HOME="$COMPOSER_HOME" COMPOSER_NO_INTERACTION=1 php -d xdebug.mode=off /usr/local/bin/composer "$@"
+    else
+        gosu "$BACKEND_USER" env COMPOSER_HOME="$COMPOSER_HOME" COMPOSER_NO_INTERACTION=1 /usr/local/bin/composer "$@"
+    fi
+}
+
 # ----- PROD -----
 if [ "$ENV_STAGE" = "prod" ]; then
     echo "==> Installing PROD dependencies..."
@@ -33,6 +53,7 @@ if [ ! -f composer.json ]; then
     rm -rf "$TMP_CREATION_DIR"
     composer create-project symfony/skeleton:"8.*" "$TMP_CREATION_DIR" --no-interaction --no-install
     cp -a "$TMP_CREATION_DIR"/. ./
+    chown -R "$BACKEND_USER":"$BACKEND_USER" . 2>/dev/null || true
     rm -rf "$TMP_CREATION_DIR"
 
     echo "==> Installing composer dependencies..."
@@ -58,13 +79,18 @@ fi
 # ----- DEV -----
 if [ "$ENV_STAGE" = "dev" ]; then
     echo "==> Installing DEV dependencies..."
-    echo "alias composer='php -d xdebug.mode=off /usr/local/bin/composer'" >> ~/.bashrc # crutch
 
     # Код мог приехать из репозитория при установке: зависимостей нет, а composer install
-    # для готового проекта на dev нигде не выполняется.
-    [ -d vendor ] || composer install
+    # для готового проекта на dev нигде не выполняется. vendor - именованный том:
+    # Docker создаёт для него пустую директорию при первом старте, поэтому
+    # [ -d vendor ] не отличает "том с зависимостями" от "том только что создан".
+    [ -n "$(ls -A vendor 2>/dev/null)" ] || composer install
 
     composer show symfony/maker-bundle > /dev/null 2>&1 || composer require --dev symfony/maker-bundle # Simplifies creation
 fi
 
-exec gosu "$BACKEND_USER" "$@"
+# php-fpm master должен остаться root: понижение прав для воркеров делает
+# сам FPM по user/group из www.conf (там www-data, uid/gid которого уже
+# подогнаны usermod/groupmod выше). gosu здесь ломает переоткрытие error_log
+# после setuid — "failed to open error_log (/proc/self/fd/2): Permission denied".
+exec "$@"
