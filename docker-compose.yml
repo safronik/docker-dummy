@@ -13,7 +13,7 @@ services:
         image: ${PROJECT_NAME}/router
         container_name: ${PROJECT_NAME}-router
         volumes:
-            - ./code:/var/www/html # static
+            - ./code:/var/www/html:ro # static
             - ./config/nginx/conf.d:/etc/nginx/conf.d # config
             - ./config/nginx/vhost.d/${ENV_STAGE:-dev}:/etc/nginx/vhost.d # config
             - ./logs/nginx:/var/log/nginx # logs
@@ -38,7 +38,7 @@ services:
             APP_GID: ${APP_GID}
             PHP_IDE_CONFIG: "serverName=${PROJECT_NAME}.${PROJECT_DOMAIN}"
             DATABASE_URL: "${DB_SCHEME}://${PROJECT_NAME}:${DB_PASSWORD}@storage:${DB_PORT_INTERNAL}/${PROJECT_NAME}?charset=${DB_CHARSET}"
-        working_dir: /var/www/html/backend
+        working_dir: /var/www/html
         volumes:
             - ./config/php-ini/php.ini:/usr/local/etc/php/conf.d/zz-php.ini:ro #php-ini
             - backend_var:/var/www/html/var

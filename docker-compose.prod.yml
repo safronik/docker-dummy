@@ -10,7 +10,7 @@ services:
 
     backend:
         volumes:
-            - ./code:/var/www/html:ro # code
+            - ./code/backend:/var/www/html:ro # code
             - ./config/php-ini/php-prod.ini:/usr/local/etc/php/conf.d/zzz-prod-override-php.ini:ro #php-ini override
 
     frontend:

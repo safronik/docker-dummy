@@ -6,6 +6,8 @@ WORKDIR /var/www/html
 RUN apk add --no-cache git
 RUN apk add --no-cache bash
 RUN apk add --no-cache shadow
+RUN apk add --no-cache shadow
+RUN apk add --no-cache gosu
 
 COPY frontend.entrypoint /frontend.entrypoint
 RUN sed -i 's/\r//' /frontend.entrypoint && chmod +x /frontend.entrypoint

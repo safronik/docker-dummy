@@ -4,7 +4,9 @@
 FROM php:8.4-fpm AS base
 
 # APT
-RUN apt update -y && apt install -y cron
+RUN apt update -y && \
+    apt install -y cron &&  \
+    apt install gosu
 
 # Easy way to install and uninstall extensions with all dependencies
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/

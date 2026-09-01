@@ -12,13 +12,13 @@ services:
 
     backend:
       volumes:
-        - ./code:/var/www/html # code
+        - ./code/backend:/var/www/html/ # code
         - ./logs/php:/log/php # logs
         - ./config/php-ini/php-prod.ini:/usr/local/etc/php/conf.d/zzz-dev-override-php.ini:ro #php-ini override
 
     frontend:
         volumes:
-          - ./code:/var/www/html
+          - ./code/frontend:/var/www/html
         ports:
             - "127.0.0.1:${NODE_EXTERNAL_PORT}:5173"
             - "[::1]:${NODE_EXTERNAL_PORT}:5173"
