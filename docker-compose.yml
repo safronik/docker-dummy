@@ -59,7 +59,7 @@ services:
       profiles: ["frontend"]
       image: ${PROJECT_NAME}/frontend
       container_name: ${PROJECT_NAME}-frontend
-      working_dir: /var/www/html/frontend
+      working_dir: /var/www/html
       volumes:
           - frontend_node_modules:/var/www/html/node_modules
       environment:
