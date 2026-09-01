@@ -354,6 +354,16 @@ if [[ "$CODE_REPO_ENABLED" == true ]]; then
         die "Application repository has no 'frontend/package.json'. Remove '$PROJECT_DIR' before retrying."
     fi
 
+    # На prod/test docker-compose.prod.yml монтирует code/backend в контейнер
+    # как read-only bind, а базовый docker-compose.yml монтирует поверх него
+    # named volumes backend_var/backend_vendor/backend_uploads. Если этих
+    # подкаталогов нет физически на хосте (обычно в .gitignore приложения),
+    # docker compose up падает: mkdir mountpoint внутри read-only bind-mount
+    # невозможен.
+    if [[ "$BACKEND" == true ]]; then
+        mkdir -p code/backend/var code/backend/vendor code/backend/public/uploads
+    fi
+
     echo "Application code deployed into code/"
 fi
 
