@@ -16,6 +16,11 @@ CODE_REPO_URL="${CODE_REPO_URL:-}"
 # Адрес для Let's Encrypt: ACME-аккаунт и письма об истечении сертификата.
 # Обязателен для prod/test. Можно задать заранее через окружение.
 SSL_EMAIL="${SSL_EMAIL:-}"
+# UID/GID, под которые контейнеры подгоняют своих пользователей (www-data, node):
+# файлы, создаваемые контейнером в code/, должны принадлежать хозяину каталога.
+# Можно задать заранее через окружение, иначе берутся из среды ниже.
+APP_UID="${APP_UID:-}"
+APP_GID="${APP_GID:-}"
 ROUTER_NAME="${ROUTER_NAME:-router-nginx}"
 LOG_FILE="${LOG_FILE:-./create_new_project.trace.log}"
 
@@ -151,6 +156,26 @@ else
 EOF
         exit 1
     fi
+fi
+
+# --- идентификаторы пользователя ----------------------------------------------
+# Уезжают в .env и дальше в контейнеры: entrypoint'ы подгоняют под них www-data и
+# node, иначе созданные контейнером файлы в code/ хосту не принадлежат.
+# Запуск от root допустим (см. выше), тогда значения нулевые: файлы проекта
+# принадлежат root, и контейнерные пользователи должны получить те же id.
+# SUDO_UID не разбираем намеренно: скрипт целиком под sudo не запускают,
+# sudo используется точечно для hosts.
+[[ -n "$APP_UID" ]] || APP_UID="$(id -u)"
+[[ -n "$APP_GID" ]] || APP_GID="$(id -g)"
+
+# значение уходит в .env через sed и в usermod внутри контейнера — только цифры
+[[ "$APP_UID" =~ ^[0-9]+$ ]] && (( APP_UID <= 2147483647 )) \
+    || die "APP_UID must be a number in 0..2147483647, got: '$APP_UID'"
+[[ "$APP_GID" =~ ^[0-9]+$ ]] && (( APP_GID <= 2147483647 )) \
+    || die "APP_GID must be a number in 0..2147483647, got: '$APP_GID'"
+
+if [[ "$APP_UID" == "0" || "$APP_GID" == "0" ]]; then
+    echo "WARNING: APP_UID/APP_GID = 0, container users will get root's ids."
 fi
 
 PROFILES=()
@@ -298,6 +323,7 @@ fi
 PROFILES_STR="$(IFS=','; printf '%s' "${PROFILES[*]:-}")"
 
 echo "Profiles: ${PROFILES_STR:-<none>}"
+echo "App UID/GID: $APP_UID/$APP_GID"
 echo "Your project is $PROJECT_NAME.$PROJECT_DOMAIN"
 echo "Folder $DESTINATION/$PROJECT_NAME will be created"
 pause
@@ -333,6 +359,8 @@ fi
 
 # --- .env ---------------------------------------------------------------------
 subst .env COMPOSE_PROFILES   "$PROFILES_STR"
+subst .env APP_UID            "$APP_UID"
+subst .env APP_GID            "$APP_GID"
 subst .env ENV_STAGE          "$ENV_STAGE"
 subst .env PROJECT_NAME       "$PROJECT_NAME"
 subst .env PROJECT_DOMAIN     "$PROJECT_DOMAIN"
