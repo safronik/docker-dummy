@@ -20,6 +20,10 @@
     .\create_new_project.ps1 -Destination D:\docker -ProjectName shop -ProjectDomain example.com `
                              -EnvStage prod -SslEmail admin@example.com
 
+.EXAMPLE
+    .\create_new_project.ps1 -Destination D:\docker -ProjectName shop -ProjectDomain local `
+                             -EnvStage dev -AppUid 1000 -AppGid 1000
+
 .NOTES
     Требуется запуск от администратора (правка hosts), git и запущенный Docker Desktop.
 #>
@@ -41,6 +45,14 @@ param(
     [ValidateRange(1, 65535)] [int] $XdebugPort = 9020,
     [ValidateRange(1, 65535)] [int] $NodePort   = 5173,
     [ValidateRange(1, 65535)] [int] $DbPort,
+
+    # UID/GID, под которые контейнеры подгоняют www-data и node: файлы,
+    # создаваемые контейнером в code\, должны принадлежать хозяину каталога.
+    # У Windows POSIX-идентификаторов нет, узнать их неоткуда: 1000 — первый
+    # непривилегированный uid в образах Debian/Alpine и типичный uid в WSL.
+    # В deploy.sh то же значение берётся из среды (id -u / id -g).
+    [ValidateRange(0, 2147483647)] [int] $AppUid = 1000,
+    [ValidateRange(0, 2147483647)] [int] $AppGid = 1000,
 
     [string] $RepoUrl    = 'https://github.com/safronik/docker-dummy.git',
     # Репозиторий приложения (backend и frontend в одном).
@@ -247,6 +259,14 @@ try {
     }
     Invoke-Native docker @('info', '--format', '{{.ServerVersion}}') | Out-Null
 
+    # --- идентификаторы пользователя ------------------------------------------
+    # Значения приходят параметрами (см. param), проверку диапазона делает
+    # ValidateRange. Нули означают то же, что в deploy.sh: www-data и node
+    # внутри контейнеров получат идентификаторы root.
+    if ($AppUid -eq 0 -or $AppGid -eq 0) {
+        Write-Host "WARNING: APP_UID/APP_GID = 0, container users will get root's ids." -ForegroundColor Yellow
+    }
+
     # --- общие настройки ------------------------------------------------------
     Set-Step 'ввод параметров'
 
@@ -399,6 +419,7 @@ try {
 
     Write-Host ''
     Write-Host "Profiles: $(if ($profilesString) { $profilesString } else { '<none>' })"
+    Write-Host "App UID/GID: $AppUid/$AppGid"
     Write-Host "Your project is $fqdn"
     Write-Host "Folder $projectDir will be created"
     Wait-Key
@@ -439,6 +460,8 @@ try {
 
         Set-Placeholders -Path '.env' -Map @{
             COMPOSE_PROFILES   = $profilesString
+            APP_UID            = $AppUid
+            APP_GID            = $AppGid
             ENV_STAGE          = $EnvStage
             PROJECT_NAME       = $ProjectName
             PROJECT_DOMAIN     = $ProjectDomain
