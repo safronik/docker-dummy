@@ -13,13 +13,13 @@ fi
 # ----- PROD -----
 if [ "$ENV_STAGE" = "prod" ]; then
     echo "==> Installing PROD dependencies..."
-    composer install
+    composer install --no-dev
 fi
 
 # ----- TEST -----
 if [ "$ENV_STAGE" = "test" ]; then
     echo "==> Installing TEST dependencies..."
-    composer install
+    composer install --no-dev
 fi
 
 # First run, project is empty
