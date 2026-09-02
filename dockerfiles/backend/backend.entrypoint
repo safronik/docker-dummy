@@ -10,10 +10,11 @@ if [ -n "$APP_UID" ] && [ -n "$APP_GID" ]; then
 fi
 
 # usermod/groupmod не меняют владельца уже существующих файлов: точки монтирования
-# именованных томов (var, vendor, public/uploads) docker создаёт как root:root
-# до старта entrypoint. chown без -R — тома на первом запуске пустые, а на
-# bind-mount (:ro на prod/test) команда безопасно упадёт и будет проигнорирована.
-chown "$BACKEND_USER":"$BACKEND_USER" . var vendor public/uploads 2>/dev/null || true
+# именованных томов (var, vendor, public/uploads, public/bundles) docker создаёт
+# как root:root до старта entrypoint. chown без -R — тома на первом запуске
+# пустые, а на bind-mount (:ro на prod/test) команда безопасно упадёт и будет
+# проигнорирована.
+chown "$BACKEND_USER":"$BACKEND_USER" . var vendor public/uploads public/bundles 2>/dev/null || true
 
 # HOME www-data (/var/www) в образе php:8.4-fpm принадлежит root — composer
 # под BACKEND_USER не может писать туда кэш.
