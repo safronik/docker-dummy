@@ -142,6 +142,10 @@ if [[ $EUID -eq 0 ]]; then
 else
     if command -v sudo >/dev/null 2>&1; then
         SUDO="sudo"
+        # Проверяем доступ сразу (интерактивно запросит пароль, если нужно):
+        # иначе пользователь без прав sudo узнаёт об этом только на шаге hosts
+        # (в конце скрипта), когда docker compose up уже отработал.
+        sudo -v || die "User '$(id -un)' has no sudo access: cannot edit the hosts file. Add sudo rights or run as root."
     else
         cat <<'EOF'
 ######## ########  ########   #######  ########
