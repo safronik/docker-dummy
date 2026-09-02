@@ -450,12 +450,12 @@ try {
 
             # На prod/test docker-compose.prod.yml монтирует code\backend в контейнер
             # как read-only bind, а базовый docker-compose.yml монтирует поверх него
-            # named volumes backend_var/backend_vendor/backend_uploads. Если этих
-            # подкаталогов нет физически на хосте (обычно в .gitignore приложения),
-            # docker compose up падает: mkdir mountpoint внутри read-only bind-mount
-            # невозможен.
+            # named volumes backend_var/backend_vendor/backend_uploads/backend_public_bundles.
+            # Если этих подкаталогов нет физически на хосте (обычно в .gitignore
+            # приложения), docker compose up падает: mkdir mountpoint внутри
+            # read-only bind-mount невозможен.
             if ($useBackend) {
-                New-Item -ItemType Directory -Force -Path 'code\backend\var', 'code\backend\vendor', 'code\backend\public\uploads' | Out-Null
+                New-Item -ItemType Directory -Force -Path 'code\backend\var', 'code\backend\vendor', 'code\backend\public\uploads', 'code\backend\public\bundles' | Out-Null
             }
             Write-Host 'Application code deployed into code/'
         }
