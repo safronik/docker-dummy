@@ -44,6 +44,7 @@ services:
             - backend_var:/var/www/html/var
             - backend_vendor:/var/www/html/vendor
             - backend_uploads:/var/www/html/public/uploads
+            - backend_public_bundles:/var/www/html/public/bundles
         networks:
             - inner
         extra_hosts:
@@ -103,6 +104,7 @@ volumes:
   backend_var:
   backend_vendor:
   backend_uploads:
+  backend_public_bundles:
   frontend_node_modules:
   storage_data:
 
